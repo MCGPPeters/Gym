@@ -3,10 +3,10 @@
              x:Class="Gymnasium.UI.Views.PerEpisodeTableView">
     <DataGrid Name="EpisodeTable" AutoGenerateColumns="False" CanUserSortColumns="True" Height="200">
         <DataGrid.Columns>
-            <DataGridTextColumn Header="Episode" Binding="{!Binding Episode}" Width="*"/>
-            <DataGridTextColumn Header="Reward" Binding="{!Binding Reward}" Width="*"/>
-            <DataGridTextColumn Header="Length" Binding="{!Binding Length}" Width="*"/>
-            <DataGridTextColumn Header="Loss" Binding="{!Binding Loss}" Width="*"/>
+            <DataGridTextColumn Header="Episode" Binding="{Binding Path=Episode}" Width="*"/>
+            <DataGridTextColumn Header="Reward" Binding="{Binding Path=Reward}" Width="*"/>
+            <DataGridTextColumn Header="Length" Binding="{Binding Path=Length}" Width="*"/>
+            <DataGridTextColumn Header="Loss" Binding="{Binding Path=Loss}" Width="*"/>
         </DataGrid.Columns>
     </DataGrid>
 </UserControl>

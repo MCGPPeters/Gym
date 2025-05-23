@@ -3,10 +3,10 @@
              x:Class="Gymnasium.UI.Views.TrajectoryTableView">
     <DataGrid Name="TrajectoryTable" AutoGenerateColumns="False" CanUserSortColumns="True" Height="200">
         <DataGrid.Columns>
-            <DataGridTextColumn Header="Step" Binding="{!Binding Step}" Width="*"/>
-            <DataGridTextColumn Header="State" Binding="{!Binding State}" Width="*"/>
-            <DataGridTextColumn Header="Action" Binding="{!Binding Action}" Width="*"/>
-            <DataGridTextColumn Header="Reward" Binding="{!Binding Reward}" Width="*"/>
+            <DataGridTextColumn Header="Step" Binding="{Binding Path=Step}" Width="*"/>
+            <DataGridTextColumn Header="State" Binding="{Binding Path=State}" Width="*"/>
+            <DataGridTextColumn Header="Action" Binding="{Binding Path=Action}" Width="*"/>
+            <DataGridTextColumn Header="Reward" Binding="{Binding Path=Reward}" Width="*"/>
         </DataGrid.Columns>
     </DataGrid>
 </UserControl>
