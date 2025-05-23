@@ -1,0 +1,8 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Gymnasium.UI.Views.EpisodeLengthChartView">
+    <StackPanel>
+        <TextBlock Text="Episode Length Chart (last 100)" FontWeight="Bold"/>
+        <Canvas x:Name="ChartCanvas" Height="120" Background="#EEE"/>
+    </StackPanel>
+</UserControl>
