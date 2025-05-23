@@ -1,13 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:media="clr-namespace:Avalonia.Media;assembly=Avalonia.Visuals"
              x:Class="Gymnasium.UI.Views.PerEpisodeTableView">
     <UserControl.Styles>
         <Style Selector="DataGrid">
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="#DDDDDD"/>
-            <Setter Property="AlternatingRowBackground">
-                <SolidColorBrush Color="#F5F7FA"/>
-            </Setter>
+            <Setter Property="AlternatingRowBackground" Value="#F5F7FA" />
             <Setter Property="HorizontalGridLinesBrush" Value="#EEEEEE"/>
             <Setter Property="VerticalGridLinesBrush" Value="#EEEEEE"/>
             <Setter Property="RowBackground" Value="White"/>
