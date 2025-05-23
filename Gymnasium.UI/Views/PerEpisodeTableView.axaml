@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             x:Class="Gymnasium.UI.Views.PerEpisodeTableView">
+    <DataGrid Name="EpisodeTable" AutoGenerateColumns="False" CanUserSortColumns="True" Height="200">
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="Episode" Binding="Episode" Width="*"/>
+            <DataGridTextColumn Header="Reward" Binding="Reward" Width="*"/>
+            <DataGridTextColumn Header="Length" Binding="Length" Width="*"/>
+            <DataGridTextColumn Header="Loss" Binding="Loss" Width="*"/>
+        </DataGrid.Columns>
+    </DataGrid>
+</UserControl>
