@@ -6,12 +6,14 @@
         <Style Selector="DataGrid">
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="#DDDDDD"/>
-            <Setter Property="AlternatingRowBackground" Value="#F5F7FA" />
             <Setter Property="HorizontalGridLinesBrush" Value="#EEEEEE"/>
             <Setter Property="VerticalGridLinesBrush" Value="#EEEEEE"/>
             <Setter Property="RowBackground" Value="White"/>
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="CanUserResizeColumns" Value="True"/>
+        </Style>
+        <Style Selector="DataGridRow:nth-child(2n)">
+            <Setter Property="Background" Value="#F5F7FA"/>
         </Style>
         <Style Selector="DataGridColumnHeader">
             <Setter Property="Background" Value="#F1F3F5"/>
