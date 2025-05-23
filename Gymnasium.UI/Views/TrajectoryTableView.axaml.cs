@@ -16,6 +16,6 @@ public partial class TrajectoryTableView : UserControl
     public void SetTrajectory(IReadOnlyList<EpisodeTrajectory>? trajectory)
     {
         if (_table == null) return;
-        _table.Items = trajectory ?? new List<EpisodeTrajectory>();
+        _table.ItemsSource = trajectory ?? new List<EpisodeTrajectory>();
     }
 }
