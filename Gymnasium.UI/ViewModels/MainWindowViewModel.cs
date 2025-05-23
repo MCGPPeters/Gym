@@ -303,7 +303,7 @@ public partial class MainWindowViewModel : ObservableObject
                 var lengthsWindow = _episodeLengths.Count > 100 ? _episodeLengths.GetRange(_episodeLengths.Count - 100, 100) : _episodeLengths;
                 string stats = $"Episode {ep+1}/{totalEpisodes}, Reward: {totalReward}, Steps: {steps}\n" +
                     $"Reward (last 100): mean={Mean(rewardsWindow):F2}, min={Min(rewardsWindow):F2}, max={Max(rewardsWindow):F2}, std={Std(rewardsWindow):F2}\n" +
-                    $"Length (last 100): mean={Mean(lengthsWindow):F2}, min={Min(lengthsWindow):F2}, max={Max(lengthsWindow):F2}, std={Std(lengthsWindow):F2}\n" +
+                    $"Length (last 100): mean={Mean(lengthsWindow.Select(x=>(double)x).ToList()):F2}, min={Min(lengthsWindow.Select(x=>(double)x).ToList()):F2}, max={Max(lengthsWindow.Select(x=>(double)x).ToList()):F2}, std={Std(lengthsWindow.Select(x=>(double)x).ToList()):F2}\n" +
                     $"Success rate (last 100): {SuccessRate(_episodeSuccesses):P1}";
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     TrainingStatsView = stats;
@@ -481,6 +481,12 @@ public partial class MainWindowViewModel : ObservableObject
         DiscoverAgentPlugins();
     }
 
+    private static double SuccessRate(IReadOnlyList<bool> successes)
+    {
+        if (successes.Count == 0) return 0;
+        return successes.Count(s => s) / (double)successes.Count;
+    }
+
     private static double Mean(IReadOnlyList<double> data) => data.Count == 0 ? 0 : data.Average();
     private static double Min(IReadOnlyList<double> data) => data.Count == 0 ? 0 : data.Min();
     private static double Max(IReadOnlyList<double> data) => data.Count == 0 ? 0 : data.Max();
@@ -534,7 +540,7 @@ Episodes: {Episodes}
 Steps per Episode: {StepsPerEpisode}</pre>
 <h2>Summary Statistics (last 100)</h2>
 <pre>Reward: mean={Mean(_rewardHistory):F2}, min={Min(_rewardHistory):F2}, max={Max(_rewardHistory):F2}, std={Std(_rewardHistory):F2}
-Length: mean={Mean(_episodeLengths):F2}, min={Min(_episodeLengths):F2}, max={Max(_episodeLengths):F2}, std={Std(_episodeLengths):F2}
+Length: mean={Mean(_episodeLengths.Select(x=>(double)x).ToList()):F2}, min={Min(_episodeLengths.Select(x=>(double)x).ToList()):F2}, max={Max(_episodeLengths.Select(x=>(double)x).ToList()):F2}, std={Std(_episodeLengths.Select(x=>(double)x).ToList()):F2}
 Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
 <h2>Reward Curve</h2>{rewardSvg}
 <h2>Episode Length Curve</h2>{lengthSvg}
@@ -599,13 +605,13 @@ Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
             };
             var lengthStats = new Dictionary<string, double>
             {
-                {"mean", Mean(lengthsWindow)},
-                {"min", Min(lengthsWindow)},
-                {"max", Max(lengthsWindow)},
-                {"std", Std(lengthsWindow)},
-                {"median", Median(lengthsWindow)},
-                {"p25", Percentile(lengthsWindow, 25)},
-                {"p75", Percentile(lengthsWindow, 75)}
+                {"mean", Mean(lengthsWindow.Select(x=>(double)x).ToList())},
+                {"min", Min(lengthsWindow.Select(x=>(double)x).ToList())},
+                {"max", Max(lengthsWindow.Select(x=>(double)x).ToList())},
+                {"std", Std(lengthsWindow.Select(x=>(double)x).ToList())},
+                {"median", Median(lengthsWindow.Select(x=>(double)x).ToList())},
+                {"p25", Percentile(lengthsWindow.Select(x=>(double)x).ToList(), 25)},
+                {"p75", Percentile(lengthsWindow.Select(x=>(double)x).ToList(), 75)}
             };
             double successRate = SuccessRate(_episodeSuccesses);
             Views.ReportPdfExporter.Export(

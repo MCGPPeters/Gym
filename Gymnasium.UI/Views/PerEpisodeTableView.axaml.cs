@@ -13,9 +13,9 @@ public partial class PerEpisodeTableView : UserControl
         this.AttachedToVisualTree += (s, e) => _table = this.FindControl<DataGrid>("EpisodeTable");
     }
 
-    public void SetEpisodes(IReadOnlyList<EpisodeStats> episodes)
+    public void SetEpisodes(IReadOnlyList<EpisodeStats>? episodes)
     {
         if (_table == null) return;
-        _table.Items = episodes;
+        _table.ItemsSource = episodes ?? new List<EpisodeStats>();
     }
 }

@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Gymnasium.UI.Views;

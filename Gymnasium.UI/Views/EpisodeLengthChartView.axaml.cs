@@ -58,7 +58,7 @@ public partial class EpisodeLengthChartView : UserControl
                 {
                     StartPoint = new Avalonia.Point(x1, y1),
                     EndPoint = new Avalonia.Point(x2, y2),
-                    Stroke = Brushes.Orange, StrokeThickness = 2, StrokeDashArray = new Avalonia.Media.DoubleCollection { 4, 2 }
+                    Stroke = Brushes.Orange, StrokeThickness = 2, StrokeDashArray = new Avalonia.Collections.AvaloniaList<double> { 4, 2 }
                 };
                 _canvas.Children.Add(line);
             }

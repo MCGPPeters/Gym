@@ -1,11 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Gymnasium.UI.Views.TrajectoryTableView">
     <DataGrid Name="TrajectoryTable" AutoGenerateColumns="False" CanUserSortColumns="True" Height="200">
         <DataGrid.Columns>
-            <DataGridTextColumn Header="Step" Binding="Step" Width="*"/>
-            <DataGridTextColumn Header="State" Binding="State" Width="*"/>
-            <DataGridTextColumn Header="Action" Binding="Action" Width="*"/>
-            <DataGridTextColumn Header="Reward" Binding="Reward" Width="*"/>
+            <DataGridTextColumn Header="Step" Binding="{!Binding Step}" Width="*"/>
+            <DataGridTextColumn Header="State" Binding="{!Binding State}" Width="*"/>
+            <DataGridTextColumn Header="Action" Binding="{!Binding Action}" Width="*"/>
+            <DataGridTextColumn Header="Reward" Binding="{!Binding Reward}" Width="*"/>
         </DataGrid.Columns>
     </DataGrid>
 </UserControl>
