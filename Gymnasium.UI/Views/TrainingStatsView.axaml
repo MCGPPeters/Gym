@@ -1,7 +1,64 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Gymnasium.UI.Views.TrainingStatsView">
-    <StackPanel>
-        <TextBlock Text="Training stats and charts will appear here."/>
-    </StackPanel>
+    <UserControl.Styles>
+        <Style Selector="TextBlock.metric-label">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#607D8B"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        <Style Selector="TextBlock.metric-value">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,16,0"/>
+        </Style>
+    </UserControl.Styles>
+
+    <Border Background="White" CornerRadius="4" Padding="12">
+        <StackPanel>
+            <Grid ColumnDefinitions="Auto,*,Auto,*">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Classes="metric-label" Text="Episode:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding CurrentEpisode}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Classes="metric-label" Text="Last Reward:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding LastReward, StringFormat='{}{0:F2}'}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Classes="metric-label" Text="Avg Reward:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding AvgReward, StringFormat='{}{0:F2}'}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <TextBlock Classes="metric-label" Text="Success Rate:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding SuccessRate, StringFormat='{}{0:P1}'}" />
+                </StackPanel>
+            </Grid>
+            
+            <Grid ColumnDefinitions="Auto,*,Auto,*" Margin="0,8,0,0">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Classes="metric-label" Text="Best Reward:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding BestReward, StringFormat='{}{0:F2}'}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Classes="metric-label" Text="Worst Reward:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding WorstReward, StringFormat='{}{0:F2}'}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="0,0,24,0">
+                    <TextBlock Classes="metric-label" Text="Avg Length:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding AvgLength, StringFormat='{}{0:F1}'}" />
+                </StackPanel>
+                
+                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                    <TextBlock Classes="metric-label" Text="Training Time:"/>
+                    <TextBlock Classes="metric-value" Text="{Binding TrainingTime}" />
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
 </UserControl>

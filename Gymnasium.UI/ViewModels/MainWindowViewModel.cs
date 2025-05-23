@@ -641,4 +641,17 @@ Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
             ReportExportError = $"PDF export failed: {ex.Message}";
         }
     }
+
+    // Properties for UI status
+    [ObservableProperty]
+    private bool isTraining = false;
+
+    [ObservableProperty]
+    private bool hasLossData = false;
+
+    [ObservableProperty]
+    private string statusMessage = "Ready to start training";
+
+    [ObservableProperty]
+    private double trainingProgress = 0;
 }
