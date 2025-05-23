@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gymnasium", "Gymnasium\Gymnasium.csproj", "{A72410C0-C011-4CF4-ADB5-4A3834926CD5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Gymnasium.Tests", "Gymnasium.Tests\Gymnasium.Tests.csproj", "{15DC79E0-0AD0-4669-8470-583B66D321C9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A72410C0-C011-4CF4-ADB5-4A3834926CD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A72410C0-C011-4CF4-ADB5-4A3834926CD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A72410C0-C011-4CF4-ADB5-4A3834926CD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A72410C0-C011-4CF4-ADB5-4A3834926CD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{15DC79E0-0AD0-4669-8470-583B66D321C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{15DC79E0-0AD0-4669-8470-583B66D321C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{15DC79E0-0AD0-4669-8470-583B66D321C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{15DC79E0-0AD0-4669-8470-583B66D321C9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
