@@ -7,10 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nerdbank.GitVersioning" Version="3.7.115">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
+    <!-- Remove duplicate Nerdbank.GitVersioning reference; it is already included in Directory.Build.props -->
+    <!-- <PackageReference Include="Nerdbank.GitVersioning" Version="3.7.115"> ... </PackageReference> -->
   </ItemGroup>
 
 </Project>
