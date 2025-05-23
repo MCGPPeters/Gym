@@ -1,12 +1,47 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Gymnasium.UI.Views.PerEpisodeTableView">
-    <DataGrid Name="EpisodeTable" AutoGenerateColumns="False" CanUserSortColumns="True" Height="200">
+    <UserControl.Styles>
+        <Style Selector="DataGrid">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="AlternatingRowBackground" Value="#F5F7FA"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#EEEEEE"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#EEEEEE"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserResizeColumns" Value="True"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F1F3F5"/>
+            <Setter Property="Foreground" Value="#424242"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="8 6"/>
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="Padding" Value="8 4"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <DataGrid Name="EpisodeTable" AutoGenerateColumns="False" CanUserSortColumns="True" 
+             Height="300" MaxHeight="300" MinWidth="320" HorizontalScrollBarVisibility="Auto">
         <DataGrid.Columns>
-            <DataGridTextColumn Header="Episode" Binding="{Binding Path=Episode}" Width="*"/>
-            <DataGridTextColumn Header="Reward" Binding="{Binding Path=Reward}" Width="*"/>
-            <DataGridTextColumn Header="Length" Binding="{Binding Path=Length}" Width="*"/>
-            <DataGridTextColumn Header="Loss" Binding="{Binding Path=Loss}" Width="*"/>
+            <DataGridTextColumn Header="Episode" Binding="{Binding Path=Episode}" Width="80"/>
+            <DataGridTextColumn Header="Reward" Binding="{Binding Path=Reward}" Width="80">
+                <DataGridTextColumn.CellTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Reward, StringFormat='{}{0:F2}'}" />
+                    </DataTemplate>
+                </DataGridTextColumn.CellTemplate>
+            </DataGridTextColumn>
+            <DataGridTextColumn Header="Length" Binding="{Binding Path=Length}" Width="80"/>
+            <DataGridTextColumn Header="Loss" Binding="{Binding Path=Loss}" Width="80">
+                <DataGridTextColumn.CellTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Loss, StringFormat='{}{0:F4}'}" />
+                    </DataTemplate>
+                </DataGridTextColumn.CellTemplate>
+            </DataGridTextColumn>
         </DataGrid.Columns>
     </DataGrid>
 </UserControl>

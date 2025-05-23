@@ -1,6 +1,46 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="Gymnasium.UI.Views.TrajectoryTableView">
+    <UserControl.Styles>
+        <Style Selector="DataGrid">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#DDDDDD"/>
+            <Setter Property="AlternatingRowBackground" Value="#F5F7FA"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#EEEEEE"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#EEEEEE"/>
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserResizeColumns" Value="True"/>
+        </Style>
+        <Style Selector="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F1F3F5"/>
+            <Setter Property="Foreground" Value="#424242"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="8 6"/>
+        </Style>
+        <Style Selector="DataGridCell">
+            <Setter Property="Padding" Value="8 4"/>
+        </Style>
+    </UserControl.Styles>
+    
+    <DataGrid Name="TrajectoryTable" AutoGenerateColumns="False" CanUserSortColumns="True" 
+             Height="240" MaxHeight="240" MinWidth="400" HorizontalScrollBarVisibility="Auto">
+        <DataGrid.Columns>
+            <DataGridTextColumn Header="Step" Binding="{Binding Path=Step}" Width="60"/>
+            <DataGridTextColumn Header="State" Binding="{Binding Path=State}" Width="160"/>
+            <DataGridTextColumn Header="Action" Binding="{Binding Path=Action}" Width="90"/>
+            <DataGridTextColumn Header="Reward" Binding="{Binding Path=Reward}" Width="90">
+                <DataGridTextColumn.CellTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Reward, StringFormat='{}{0:F2}'}" />
+                    </DataTemplate>
+                </DataGridTextColumn.CellTemplate>
+            </DataGridTextColumn>
+        </DataGrid.Columns>
+    </DataGrid>
+</UserControl> xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="Gymnasium.UI.Views.TrajectoryTableView">
     <DataGrid Name="TrajectoryTable" AutoGenerateColumns="False" CanUserSortColumns="True" Height="200">
         <DataGrid.Columns>
             <DataGridTextColumn Header="Step" Binding="{Binding Path=Step}" Width="*"/>

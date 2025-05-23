@@ -3,83 +3,222 @@
         xmlns:vm="using:Gymnasium.UI.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="Gymnasium.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="Gymnasium - RL Playground">
+        Title="Gymnasium - RL Environment Explorer"
+        Background="#F7F9FC"
+        WindowStartupLocation="CenterScreen"
+        MinWidth="1000" MinHeight="700">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <DockPanel>
-        <StackPanel Orientation="Vertical" DockPanel.Dock="Left" Width="300" Background="#F5F5F5" Margin="16">
-            <TextBlock Text="Environment" FontWeight="Bold" FontSize="18" Margin="0,0,0,8"/>
-            <ComboBox ItemsSource="{Binding Environments}" SelectedItem="{Binding SelectedEnvironment, Mode=TwoWay}"/>
-            <TextBlock Text="Agent (Plugin)" FontWeight="Bold" FontSize="18" Margin="0,24,0,8"/>
-            <ComboBox ItemsSource="{Binding Agents}" SelectedItem="{Binding SelectedAgent, Mode=TwoWay}"/>
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Button Content="Reload Plugins" Command="{Binding ReloadPluginsCommand}"/>
-                <TextBlock Text="(Drop DLLs in 'Plugins' folder)" Margin="8,0,0,0" FontSize="12" Foreground="#888"/>
-            </StackPanel>
-            <TextBlock Text="Agent (Plugin)" FontWeight="Bold" FontSize="18" Margin="0,24,0,8"/>
-            <ComboBox ItemsSource="{Binding Agents}" SelectedItem="{Binding SelectedAgent, Mode=TwoWay}"/>
-            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
-                <Button Content="Reload Plugins" Command="{Binding ReloadPluginsCommand}"/>
-                <TextBlock Text="(Drop DLLs in 'Plugins' folder)" Margin="8,0,0,0" FontSize="12" Foreground="#888"/>
-            </StackPanel>
-            <TextBlock Text="Training Parameters" FontWeight="Bold" FontSize="18" Margin="0,24,0,8"/>
-            <StackPanel Orientation="Vertical" Margin="0,0,0,8">
-                <TextBlock Text="Episodes:"/>
-                <NumericUpDown Minimum="1" Maximum="100000" Value="{Binding Episodes, Mode=TwoWay}"/>
-            </StackPanel>
-            <StackPanel Orientation="Vertical" Margin="0,0,0,8">
-                <TextBlock Text="Steps per Episode:"/>
-                <NumericUpDown Minimum="1" Maximum="10000" Value="{Binding StepsPerEpisode, Mode=TwoWay}"/>
-            </StackPanel>
-            <Button Content="Start Training" Command="{Binding StartTrainingCommand}" Margin="0,24,0,0" IsEnabled="{Binding CanStartTraining}"/>
-            <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Left">
-                <Button Content="Save Session" Command="{Binding SaveSessionCommand}" Margin="0,0,8,0"/>
-                <Button Content="Load Session" Command="{Binding LoadSessionCommand}"/>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Margin="0,4,0,0" HorizontalAlignment="Left">
-                <Button Content="Add Plugin DLL..." Command="{Binding AddPluginDllCommand}"/>
-            </StackPanel>
-            <TextBlock Text="{Binding PluginError}" Foreground="Red" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
-            <TextBlock Text="Training Stats" FontWeight="Bold" FontSize="16" Margin="0,16,0,4"/>
-            <TextBlock Text="{Binding TrainingStatsSummary}" FontFamily="Consolas,monospace" FontSize="13" TextWrapping="Wrap" Background="#F8F8F8" Padding="4"/>
-            <Button Content="Export Report" Command="{Binding ExportReportCommand}" Margin="0,8,0,0"/>
-            <Button Content="Export PDF Report" Command="{Binding ExportPdfReportCommand}" Margin="0,4,0,0"/>
-            <TextBlock Text="{Binding ReportExportError}" Foreground="Red" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
-        </StackPanel>
-        <Grid>
+    <Window.Styles>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#2E7D32"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="16,8"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.secondary">
+            <Setter Property="Background" Value="#546E7A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.tool">
+            <Setter Property="Background" Value="#E3F2FD"/>
+            <Setter Property="Foreground" Value="#0D47A1"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="TextBlock.header">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style Selector="TextBlock.subheader">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Margin" Value="0,16,0,4"/>
+        </Style>
+        <Style Selector="ComboBox">
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Width" Value="260"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="NumericUpDown">
+            <Setter Property="Margin" Value="0,0,0,12"/>
+            <Setter Property="Width" Value="260"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style Selector="Border.card">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="BoxShadow" Value="0 2 8 0 #15000000"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+        </Style>
+    </Window.Styles>
+
+    <DockPanel Margin="0">
+        <!-- Left Sidebar -->
+        <Border DockPanel.Dock="Left" Width="300" Background="#FFFFFF" BoxShadow="2 0 10 0 #15000000" Padding="16">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Image Source="/Assets/gymnasium-logo.png" Width="200" Margin="0,0,0,16" HorizontalAlignment="Left"/>
+                    
+                    <TextBlock Classes="header" Text="Configuration"/>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Environment" FontWeight="Medium" Margin="0,0,0,4"/>
+                            <ComboBox ItemsSource="{Binding Environments}" SelectedItem="{Binding SelectedEnvironment, Mode=TwoWay}"/>
+                            
+                            <TextBlock Text="Agent Plugin" FontWeight="Medium" Margin="0,12,0,4"/>
+                            <ComboBox ItemsSource="{Binding Agents}" SelectedItem="{Binding SelectedAgent, Mode=TwoWay}"/>
+                            
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
+                                <Button Classes="tool" Content="Reload Plugins" Command="{Binding ReloadPluginsCommand}"/>
+                                <Button Classes="tool" Content="Import DLL..." Command="{Binding AddPluginDllCommand}" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock Text="(Drop agent plugin DLLs in 'Plugins' folder)" Margin="0,4,0,0" FontSize="12" Foreground="#888888"/>
+                            
+                            <TextBlock Text="{Binding PluginError}" Foreground="#D32F2F" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Training Parameters" FontWeight="Medium" Margin="0,0,0,12"/>
+                            
+                            <TextBlock Text="Episodes:" Margin="0,0,0,4"/>
+                            <NumericUpDown Minimum="1" Maximum="100000" Value="{Binding Episodes, Mode=TwoWay}" 
+                                          FormatString="0" Watermark="Number of episodes"/>
+                            
+                            <TextBlock Text="Steps per Episode:" Margin="0,8,0,4"/>
+                            <NumericUpDown Minimum="1" Maximum="10000" Value="{Binding StepsPerEpisode, Mode=TwoWay}" 
+                                          FormatString="0" Watermark="Max steps per episode"/>
+                            
+                            <Button Classes="primary" Content="Start Training" Command="{Binding StartTrainingCommand}" 
+                                    Margin="0,16,0,0" IsEnabled="{Binding CanStartTraining}" HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Session Management" FontWeight="Medium" Margin="0,0,0,8"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
+                                <Button Classes="secondary" Content="Save Session" Command="{Binding SaveSessionCommand}" Margin="0,0,8,0"/>
+                                <Button Classes="secondary" Content="Load Session" Command="{Binding LoadSessionCommand}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Training Stats" FontWeight="Medium" Margin="0,0,0,8"/>
+                            <TextBlock Text="{Binding TrainingStatsSummary}" FontFamily="Consolas,monospace" 
+                                       FontSize="13" TextWrapping="Wrap" Background="#F5F7FA" Padding="8" MinHeight="100"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
+                                <Button Classes="secondary" Content="Export HTML Report" Command="{Binding ExportReportCommand}" Margin="0,0,8,0"/>
+                                <Button Classes="secondary" Content="Export PDF" Command="{Binding ExportPdfReportCommand}"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ReportExportError}" Foreground="#D32F2F" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Margin="16">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
-                <RowDefinition Height="200"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <Border Grid.Row="0" Margin="16" Background="#222" CornerRadius="8">
-                <!-- Rendered environment will go here -->
-                <ContentControl Content="{Binding EnvironmentView}"/>
+            
+            <!-- Environment Visualization -->
+            <Border Grid.Row="0" Classes="card" Background="#222" CornerRadius="8" MinHeight="300">
+                <Grid>
+                    <ContentControl Content="{Binding EnvironmentView}"/>
+                    <TextBlock Text="Environment Visualization" Foreground="#CCCCCC" 
+                              HorizontalAlignment="Center" VerticalAlignment="Center" 
+                              IsVisible="{Binding !IsTraining}"/>
+                </Grid>
             </Border>
-            <Border Grid.Row="1" Margin="16" Background="#FFF" CornerRadius="8" Padding="8">
-                <!-- Training progress, stats, and charts -->
-                <ContentControl Content="{Binding TrainingStatsView}"/>
+            
+            <!-- Training Charts Area -->
+            <TabControl Grid.Row="1" Margin="0,16,0,0">
+                <TabItem Header="Performance Charts">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                        <StackPanel Orientation="Horizontal" Margin="0,8">
+                            <Border Classes="card" Width="400" Height="280" Margin="0,0,16,0">
+                                <StackPanel>
+                                    <TextBlock Text="Reward History" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <ContentControl Content="{Binding RewardChartView}" Height="230"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Classes="card" Width="400" Height="280" Margin="0,0,16,0">
+                                <StackPanel>
+                                    <TextBlock Text="Episode Length" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <ContentControl Content="{Binding EpisodeLengthChartView}" Height="230"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <Border Classes="card" Width="400" Height="280" IsVisible="{Binding HasLossData}">
+                                <StackPanel>
+                                    <TextBlock Text="Loss Curve" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <ContentControl Content="{Binding LossChartView}" Height="230"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+                
+                <TabItem Header="Episode Data">
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto">
+                        <StackPanel Orientation="Horizontal" Margin="0,8">
+                            <Border Classes="card" Width="400" Margin="0,0,16,0">
+                                <StackPanel>
+                                    <TextBlock Text="Episodes Table" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <ContentControl Content="{Binding PerEpisodeTableView}"/>
+                                </StackPanel>
+                            </Border>
+                            
+                            <StackPanel>
+                                <Border Classes="card" Width="500" Margin="0,0,0,16">
+                                    <StackPanel>
+                                        <TextBlock Text="Best Episode Trajectory" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <ContentControl Content="{Binding BestTrajectoryTableView}"/>
+                                    </StackPanel>
+                                </Border>
+                                
+                                <Border Classes="card" Width="500">
+                                    <StackPanel>
+                                        <TextBlock Text="Worst Episode Trajectory" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                        <ContentControl Content="{Binding WorstTrajectoryTableView}"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+            
+            <!-- Training Progress -->
+            <Border Grid.Row="2" Classes="card" Margin="0,16,0,0" Padding="16,8">
+                <StackPanel>
+                    <ProgressBar Value="{Binding TrainingProgress}" Maximum="100" Height="10" 
+                               IsVisible="{Binding IsTraining}" Margin="0,0,0,8"/>
+                    <TextBlock Text="{Binding StatusMessage}" HorizontalAlignment="Center"/>
+                </StackPanel>
             </Border>
         </Grid>
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" HorizontalAlignment="Left">
-            <ContentControl Content="{Binding RewardChartView}" Margin="0,0,8,0"/>
-            <ContentControl Content="{Binding EpisodeLengthChartView}" Margin="0,0,8,0"/>
-            <ContentControl Content="{Binding LossChartView}" Margin="0,0,8,0"/>
-            <ContentControl Content="{Binding PerEpisodeTableView}" Margin="0,0,8,0"/>
-            <StackPanel>
-                <TextBlock Text="Best Episode Trajectory" FontWeight="Bold" Margin="0,0,0,4"/>
-                <ContentControl Content="{Binding BestTrajectoryTableView}"/>
-                <TextBlock Text="Worst Episode Trajectory" FontWeight="Bold" Margin="8,8,0,4"/>
-                <ContentControl Content="{Binding WorstTrajectoryTableView}"/>
-            </StackPanel>
-        </StackPanel>
     </DockPanel>
 </Window>
