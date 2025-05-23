@@ -1,8 +1,38 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:media="clr-namespace:Avalonia.Media;assembly=Avalonia.Visuals"
              x:Class="Gymnasium.UI.Views.EpisodeLengthChartView">
-    <StackPanel>
-        <TextBlock Text="Episode Length Chart (last 100)" FontWeight="Bold"/>
-        <Canvas x:Name="ChartCanvas" Height="120" Background="#EEE"/>
-    </StackPanel>
+    <Border Background="White" BorderBrush="#EEEEEE" BorderThickness="1" CornerRadius="4" Padding="8">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Header with legend -->
+            <Grid Grid.Row="0">
+                <TextBlock Text="Episode Length" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" Foreground="#424242"/>
+                <Border HorizontalAlignment="Right" Background="White" BorderBrush="#E0E0E0" BorderThickness="1" 
+                        CornerRadius="4" Padding="8,4">
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,12,0">
+                            <Line StartPoint="0,0" EndPoint="16,0" Stroke="#4CAF50" StrokeThickness="2.5" 
+                                  StrokeLineCap="Round" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Length" FontSize="11" Foreground="#424242"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <Line StartPoint="0,0" EndPoint="16,0" Stroke="#FF9800" StrokeThickness="2.5" 
+                                  Margin="0,0,4,0" VerticalAlignment="Center" StrokeLineCap="Round"
+                                  StrokeDashArray="6,3">
+                            </Line>
+                            <TextBlock Text="Moving Avg" FontSize="11" Foreground="#424242"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            
+            <!-- Chart canvas with subtle grid background -->
+            <Canvas Grid.Row="1" Name="ChartCanvas" Height="200" Background="#F8F9FA" Margin="0,8,0,0"/>
+        </Grid>
+    </Border>
 </UserControl>
