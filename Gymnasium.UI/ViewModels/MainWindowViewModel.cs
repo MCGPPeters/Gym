@@ -35,10 +35,32 @@ public partial class MainWindowViewModel : ObservableObject
         "FrozenLake-v1", "Taxi-v3", "Blackjack-v1", "CliffWalking-v0",
         "LunarLander-v2", "BipedalWalker-v3", "CarRacing-v2", "AtariStub-v0", "MujocoStub-v0"
     };
-    public string? SelectedEnvironment { get; set; }
+    private string? _selectedEnvironment;
+    public string? SelectedEnvironment
+    {
+        get => _selectedEnvironment;
+        set
+        {
+            if (SetProperty(ref _selectedEnvironment, value))
+            {
+                UpdateEnvironmentInfo();
+            }
+        }
+    }
 
     public ObservableCollection<string> Agents { get; } = new() { "RandomAgent (Built-in)" };
-    public string? SelectedAgent { get; set; }
+    private string? _selectedAgent;
+    public string? SelectedAgent
+    {
+        get => _selectedAgent;
+        set
+        {
+            if (SetProperty(ref _selectedAgent, value))
+            {
+                UpdateEnvironmentInfo();
+            }
+        }
+    }
 
     public int Episodes { get; set; } = 100;
     public int StepsPerEpisode { get; set; } = 200;
@@ -91,12 +113,27 @@ public partial class MainWindowViewModel : ObservableObject
     private int? _bestEpisodeIndex = null;
     private int? _worstEpisodeIndex = null;
     private List<EpisodeTrajectory>? _bestEpisodeTrajectory = null;
-    private List<EpisodeTrajectory>? _worstEpisodeTrajectory = null;
-
-    public MainWindowViewModel()
+    private List<EpisodeTrajectory>? _worstEpisodeTrajectory = null;    public MainWindowViewModel()
     {
         DiscoverAgentPlugins();
         StartTrainingCommand = new AsyncRelayCommand(StartTraining, () => CanStartTraining);
+        
+        // Setup duration timer
+        durationTimer = new System.Timers.Timer(1000);
+        durationTimer.Elapsed += (s, e) => 
+        {
+            if (sessionStartTime.HasValue && IsTraining)
+            {
+                TimeSpan duration = DateTime.Now - sessionStartTime.Value;
+                Dispatcher.UIThread.InvokeAsync(() => 
+                {
+                    SessionDuration = $"{duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+                });
+            }
+        };
+        
+        // Set default environment info
+        UpdateEnvironmentInfo();
     }
 
     private void SetIsTraining(bool value)
@@ -118,6 +155,14 @@ public partial class MainWindowViewModel : ObservableObject
     {
         if (string.IsNullOrEmpty(SelectedEnvironment) || string.IsNullOrEmpty(SelectedAgent)) return;
         SetIsTraining(true);
+        StatusMessage = "Initializing training...";
+        sessionStartTime = DateTime.Now;
+        durationTimer?.Start();
+        TrainingProgress = 0;
+        CurrentEpisode = "0";
+        LastReward = "N/A";
+        SuccessRate = "N/A";
+
         _rewardHistory.Clear();
         _episodeLengths.Clear();
         _episodeSuccesses.Clear();
@@ -142,6 +187,13 @@ public partial class MainWindowViewModel : ObservableObject
             var rewards = new double[totalEpisodes];
             for (int ep = 0; ep < totalEpisodes; ep++)
             {
+                await Dispatcher.UIThread.InvokeAsync(() => 
+                {
+                    CurrentEpisode = $"{ep + 1}/{totalEpisodes}";
+                    TrainingProgress = (double)(ep + 1) / totalEpisodes * 100;
+                    StatusMessage = $"Running episode {ep + 1}...";
+                });
+
                 dynamic state = env.Reset();
                 double totalReward = 0;
                 int steps = 0;
@@ -292,6 +344,14 @@ public partial class MainWindowViewModel : ObservableObject
                 _rewardHistory.Add(totalReward);
                 _episodeLengths.Add(steps);
                 _episodeSuccesses.Add(success);
+
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    LastReward = totalReward.ToString("F2");
+                    var last100Successes = _episodeSuccesses.Count > 100 ? _episodeSuccesses.GetRange(_episodeSuccesses.Count - 100, 100) : _episodeSuccesses;
+                    SuccessRate = $"{CalculateSuccessRate(last100Successes):P1}";
+                });
+                
                 _perEpisodeStats.Add(new EpisodeStats {
                     Episode = ep + 1,
                     Reward = totalReward,
@@ -304,7 +364,7 @@ public partial class MainWindowViewModel : ObservableObject
                 string stats = $"Episode {ep+1}/{totalEpisodes}, Reward: {totalReward}, Steps: {steps}\n" +
                     $"Reward (last 100): mean={Mean(rewardsWindow):F2}, min={Min(rewardsWindow):F2}, max={Max(rewardsWindow):F2}, std={Std(rewardsWindow):F2}\n" +
                     $"Length (last 100): mean={Mean(lengthsWindow.Select(x=>(double)x).ToList()):F2}, min={Min(lengthsWindow.Select(x=>(double)x).ToList()):F2}, max={Max(lengthsWindow.Select(x=>(double)x).ToList()):F2}, std={Std(lengthsWindow.Select(x=>(double)x).ToList()):F2}\n" +
-                    $"Success rate (last 100): {SuccessRate(_episodeSuccesses):P1}";
+                    $"Success rate (last 100): {CalculateSuccessRate(_episodeSuccesses):P1}";
                 await Dispatcher.UIThread.InvokeAsync(() => {
                     TrainingStatsView = stats;
                     TrainingStatsSummary = stats;
@@ -331,10 +391,21 @@ public partial class MainWindowViewModel : ObservableObject
             }
             _bestEpisodeTrajectory = bestTraj;
             _worstEpisodeTrajectory = worstTraj;
+            StatusMessage = "Training completed.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Training error: {ex.Message}";
         }
         finally
         {
             SetIsTraining(false);
+            durationTimer?.Stop();
+            if (sessionStartTime.HasValue)
+            {
+                TimeSpan finalDuration = DateTime.Now - sessionStartTime.Value;
+                SessionDuration = $"{finalDuration.Hours:00}:{finalDuration.Minutes:00}:{finalDuration.Seconds:00}";
+            }
         }
     }
 
@@ -442,12 +513,25 @@ public partial class MainWindowViewModel : ObservableObject
                 Episodes = session.Episodes;
                 StepsPerEpisode = session.StepsPerEpisode;
                 _rewardHistory = session.RewardHistory ?? new List<double>();
+                _episodeLengths = session.EpisodeLengths ?? new List<int>(); // Added this line
                 _lossHistory = session.LossHistory ?? new List<double>();
                 _perEpisodeStats = session.PerEpisodeStats ?? new List<EpisodeStats>();
+                _episodeSuccesses = _perEpisodeStats.Select(s => s.Reward > 0).ToList(); // Basic heuristic for now
+
                 _bestEpisodeIndex = session.BestEpisodeIndex;
                 _worstEpisodeIndex = session.WorstEpisodeIndex;
                 _bestEpisodeTrajectory = session.BestEpisodeTrajectory;
                 _worstEpisodeTrajectory = session.WorstEpisodeTrajectory;
+                
+                StatusMessage = "Session loaded.";
+                TrainingProgress = 0; // Or calculate based on loaded data if applicable
+                SessionDuration = "N/A"; // Or load/calculate if stored in session
+                CurrentEpisode = _perEpisodeStats.Count > 0 ? _perEpisodeStats.Count.ToString() : "0";
+                LastReward = _rewardHistory.LastOrDefault().ToString("F2");
+                var successesToCalc = _episodeSuccesses.Count > 100 ? _episodeSuccesses.GetRange(_episodeSuccesses.Count - 100, 100) : _episodeSuccesses;
+                SuccessRate = $"{CalculateSuccessRate(successesToCalc):P1}";
+
+
                 OnPropertyChanged(nameof(SelectedEnvironment));
                 OnPropertyChanged(nameof(SelectedAgent));
                 OnPropertyChanged(nameof(Episodes));
@@ -455,6 +539,10 @@ public partial class MainWindowViewModel : ObservableObject
                 if (RewardChartView is Views.RewardChartView chartView)
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => chartView.RenderRewards(_rewardHistory));
+                }
+                if (EpisodeLengthChartView is Views.EpisodeLengthChartView lenChartView) // Added this block
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => lenChartView.RenderLengths(_episodeLengths));
                 }
                 if (LossChartView is Views.LossChartView lossChartView)
                 {
@@ -479,9 +567,10 @@ public partial class MainWindowViewModel : ObservableObject
     private void ReloadPlugins()
     {
         DiscoverAgentPlugins();
+        UpdateEnvironmentInfo(); // Ensure info is updated after plugin reload
     }
 
-    private static double SuccessRate(IReadOnlyList<bool> successes)
+    private static double CalculateSuccessRate(IReadOnlyList<bool> successes)
     {
         if (successes.Count == 0) return 0;
         return successes.Count(s => s) / (double)successes.Count;
@@ -541,7 +630,7 @@ Steps per Episode: {StepsPerEpisode}</pre>
 <h2>Summary Statistics (last 100)</h2>
 <pre>Reward: mean={Mean(_rewardHistory):F2}, min={Min(_rewardHistory):F2}, max={Max(_rewardHistory):F2}, std={Std(_rewardHistory):F2}
 Length: mean={Mean(_episodeLengths.Select(x=>(double)x).ToList()):F2}, min={Min(_episodeLengths.Select(x=>(double)x).ToList()):F2}, max={Max(_episodeLengths.Select(x=>(double)x).ToList()):F2}, std={Std(_episodeLengths.Select(x=>(double)x).ToList()):F2}
-Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
+Success rate: {CalculateSuccessRate(_episodeSuccesses):P1}</pre>
 <h2>Reward Curve</h2>{rewardSvg}
 <h2>Episode Length Curve</h2>{lengthSvg}
 <h2>Loss Curve</h2>{lossSvg}
@@ -613,7 +702,7 @@ Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
                 {"p25", Percentile(lengthsWindow.Select(x=>(double)x).ToList(), 25)},
                 {"p75", Percentile(lengthsWindow.Select(x=>(double)x).ToList(), 75)}
             };
-            double successRate = SuccessRate(_episodeSuccesses);
+            double successRate = CalculateSuccessRate(_episodeSuccesses);
             Views.ReportPdfExporter.Export(
                 path,
                 SelectedEnvironment ?? "",
@@ -640,10 +729,7 @@ Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
         {
             ReportExportError = $"PDF export failed: {ex.Message}";
         }
-    }
-
-    // Properties for UI status
-    [ObservableProperty]
+    }    // Properties for UI status    [ObservableProperty]
     private bool isTraining = false;
 
     [ObservableProperty]
@@ -654,4 +740,93 @@ Success rate: {SuccessRate(_episodeSuccesses):P1}</pre>
 
     [ObservableProperty]
     private double trainingProgress = 0;
+    
+    [ObservableProperty]
+    private int selectedTabIndex = 0;
+    
+    [ObservableProperty]
+    private bool showDetailsPanel = true;
+    
+    [ObservableProperty]
+    private string lastReward = "0.0";
+    
+    [ObservableProperty]
+    private string currentEpisode = "0";
+    
+    [ObservableProperty]
+    private string successRate = "0%";
+    
+    [ObservableProperty]
+    private string sessionDuration = "00:00:00";
+    
+    [ObservableProperty]
+    private string environmentInfo = "";
+    
+    [ObservableProperty]
+    private string agentInfo = "";
+    
+    [ObservableProperty]
+    private bool showTutorial = false;
+    
+    private DateTime? sessionStartTime;
+    private System.Timers.Timer? durationTimer;
+    
+    public IRelayCommand SwitchToChartsTabCommand => new RelayCommand(() => SelectedTabIndex = 0);
+    public IRelayCommand SwitchToEpisodeDataTabCommand => new RelayCommand(() => SelectedTabIndex = 1);
+    public IRelayCommand ToggleDetailsPanelCommand => new RelayCommand(() => ShowDetailsPanel = !ShowDetailsPanel);
+    public IRelayCommand ToggleTutorialCommand => new RelayCommand(() => ShowTutorial = !ShowTutorial);
+
+    private void UpdateEnvironmentInfo()
+    {
+        if (string.IsNullOrEmpty(SelectedEnvironment))
+        {
+            EnvironmentInfo = "Select an environment to begin";
+            return;
+        }
+        
+        switch (SelectedEnvironment)
+        {
+            case "CartPole-v1":
+                EnvironmentInfo = "A pole is attached to a cart moving along a frictionless track. The goal is to prevent the pole from falling over by moving the cart left or right.";
+                break;
+            case "MountainCar-v0":
+                EnvironmentInfo = "A car positioned between two mountains. The goal is to drive up the mountain on the right by building momentum from going back and forth.";
+                break;
+            case "MountainCarContinuous-v0":
+                EnvironmentInfo = "Continuous version of MountainCar. The goal is to drive up the mountain on the right.";
+                break;
+            case "Acrobot-v1":
+                EnvironmentInfo = "A two-link robot with the goal to swing the end of the lower link up to a given height.";
+                break;
+            case "Pendulum-v1":
+                EnvironmentInfo = "A single-link pendulum with the goal to keep it upright.";
+                break;
+            case "FrozenLake-v1":
+                EnvironmentInfo = "Agent must navigate a frozen lake from start to goal without falling in holes.";
+                break;
+            case "Taxi-v3":
+                EnvironmentInfo = "A taxi must pick up and drop off passengers at designated locations.";
+                break;
+            case "Blackjack-v1":
+                EnvironmentInfo = "Player must get as close as possible to 21 without going over, competing against a dealer.";
+                break;
+            case "CliffWalking-v0":
+                EnvironmentInfo = "Agent must navigate from start to goal along a cliff edge without falling off.";
+                break;
+            default:
+                EnvironmentInfo = "Advanced environment with complex dynamics.";
+                break;
+        }
+        
+        if (!string.IsNullOrEmpty(SelectedAgent))
+        {
+            AgentInfo = SelectedAgent.EndsWith("(Built-in)") 
+                ? "Simple agent that takes random actions in the environment."
+                : "Custom agent plugin that implements advanced decision-making strategies.";
+        }
+        else
+        {
+            AgentInfo = "Select an agent to begin training.";
+        }
+    }
 }

@@ -1,0 +1,28 @@
+{
+  "Environment": "CartPole-v1",
+  "Agent": "RandomAgent (Built-in)",
+  "Episodes": 5,
+  "StepsPerEpisode": 20,
+  "RewardHistory": [ 20.0, 15.0, 20.0, 12.0, 18.0 ],
+  "EpisodeLengths": [ 20, 15, 20, 12, 18 ],
+  "LossHistory": [],
+  "PerEpisodeStats": [
+    { "Episode": 1, "Reward": 20.0, "Length": 20, "Loss": null },
+    { "Episode": 2, "Reward": 15.0, "Length": 15, "Loss": null },
+    { "Episode": 3, "Reward": 20.0, "Length": 20, "Loss": null },
+    { "Episode": 4, "Reward": 12.0, "Length": 12, "Loss": null },
+    { "Episode": 5, "Reward": 18.0, "Length": 18, "Loss": null }
+  ],
+  "Timestamp": "2025-05-23T12:00:00Z",
+  "BestEpisodeIndex": 0,
+  "WorstEpisodeIndex": 3,
+  "BestEpisodeTrajectory": [
+    { "Step": 1, "State": "State[0.01,0.02,0.03,0.04]", "Action": "Action[0]", "Reward": 1.0 },
+    { "Step": 2, "State": "State[0.02,0.03,0.04,0.05]", "Action": "Action[1]", "Reward": 1.0 },
+    { "Step": 3, "State": "State[0.03,0.04,0.05,0.06]", "Action": "Action[0]", "Reward": 1.0 }
+  ],
+  "WorstEpisodeTrajectory": [
+    { "Step": 1, "State": "State[-0.01,-0.02,-0.03,-0.04]", "Action": "Action[1]", "Reward": 1.0 },
+    { "Step": 2, "State": "State[-0.02,-0.03,-0.04,-0.05]", "Action": "Action[0]", "Reward": 1.0 }
+  ]
+}

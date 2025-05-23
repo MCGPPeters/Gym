@@ -5,11 +5,21 @@ using QuestPDF.Infrastructure;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace Gymnasium.UI.Views;
 
 public static class ReportPdfExporter
 {
+    // Color scheme for consistent branding
+    private static readonly string PrimaryColor = "#1976D2";
+    private static readonly string SecondaryColor = "#4CAF50";
+    private static readonly string AccentColor = "#FF9800";
+    private static readonly string HeaderBgColor = "#F5F7FA";
+    private static readonly string TextColor = "#424242";
+    private static readonly string SubtitleColor = "#757575";
+    private static readonly string BorderColor = "#E0E0E0";
+    
     public static void Export(
         string filePath,
         string environment,
@@ -34,137 +44,304 @@ public static class ReportPdfExporter
         {
             container.Page(page =>
             {
+                page.Size(PageSizes.A4);
                 page.Margin(30);
-                page.Header().Text("Gymnasium Training Report").FontSize(24).Bold();
-                page.Content().Column(col =>
+                page.DefaultTextStyle(x => x.FontFamily("Arial").FontSize(10).FontColor(TextColor));
+                
+                page.Header().Container().Column(column => 
                 {
-                    col.Item().Text($"Date: {date}").FontSize(12);
-                    col.Item().PaddingTop(10).Text("Configuration").FontSize(16).Bold();
-                    col.Item().Text($"Environment: {environment}\nAgent: {agent}\nEpisodes: {episodes}\nSteps per Episode: {stepsPerEpisode}").FontSize(12);
-                    col.Item().PaddingTop(10).Text("Summary Statistics (last 100)").FontSize(16).Bold();
-                    col.Item().Table(table =>
+                    // Header with logo and title
+                    column.Item().Row(row => 
                     {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.ConstantColumn(120);
-                            columns.RelativeColumn();
-                        });
-                        table.Cell().Element(CellStyle).Text("Metric").Bold();
-                        table.Cell().Element(CellStyle).Text("Value").Bold();
-                        foreach (var kv in rewardStats)
-                        {
-                            table.Cell().Element(CellStyle).Text($"Reward {kv.Key}");
-                            table.Cell().Element(CellStyle).Text(kv.Value.ToString("F2"));
-                        }
-                        foreach (var kv in lengthStats)
-                        {
-                            table.Cell().Element(CellStyle).Text($"Length {kv.Key}");
-                            table.Cell().Element(CellStyle).Text(kv.Value.ToString("F2"));
-                        }
-                        table.Cell().Element(CellStyle).Text("Success Rate");
-                        table.Cell().Element(CellStyle).Text(successRate.ToString("P1"));
+                        row.RelativeItem().AlignLeft().Text("Gymnasium").FontSize(24).FontColor(PrimaryColor).Bold();
+                        row.ConstantItem(180).AlignRight().Text(date).FontSize(10).FontColor(SubtitleColor);
                     });
-                    col.Item().PaddingTop(10).Text("Reward Curve").FontSize(16).Bold();
-                    col.Item().Image(SvgToPng(rewardChartSvg)).FitWidth();
-                    col.Item().PaddingTop(10).Text("Episode Length Curve").FontSize(16).Bold();
-                    col.Item().Image(SvgToPng(lengthChartSvg)).FitWidth();
-                    if (!string.IsNullOrWhiteSpace(lossChartSvg))
-                    {
-                        col.Item().PaddingTop(10).Text("Loss Curve").FontSize(16).Bold();
-                        col.Item().Image(SvgToPng(lossChartSvg)).FitWidth();
-                    }
+                    
+                    column.Item().BorderBottom(1).BorderColor(BorderColor).PaddingBottom(5)
+                        .Text("Training Report").FontSize(16).FontColor(TextColor).SemiBold();
+                });
+                
+                page.Content().Container().Column(col =>
+                {
+                    // Training Configuration Section
+                    col.Item().PaddingVertical(10).Container().Background(HeaderBgColor)
+                        .Padding(10)
+                        .Column(configCol => 
+                        {
+                            configCol.Item().Text("Configuration").FontSize(14).SemiBold().FontColor(PrimaryColor);
+                            
+                            configCol.Item().Grid(grid => 
+                            {
+                                grid.Columns(2);
+                                grid.Item().Text("Environment:").SemiBold();
+                                grid.Item().Text(environment);
+                                grid.Item().Text("Agent:").SemiBold();
+                                grid.Item().Text(agent);
+                                grid.Item().Text("Episodes:").SemiBold();
+                                grid.Item().Text(episodes.ToString());
+                                grid.Item().Text("Steps per Episode:").SemiBold();
+                                grid.Item().Text(stepsPerEpisode.ToString());
+                            });
+                        });
+                    
+                    // Summary Statistics Section
+                    col.Item().PaddingTop(15).Container().Background(HeaderBgColor)
+                        .Padding(10)
+                        .Column(statsCol =>
+                        {
+                            statsCol.Item().Text("Summary Statistics (last 100)").FontSize(14).SemiBold().FontColor(PrimaryColor);
+                            
+                            // Rewards statistics
+                            statsCol.Item().PaddingTop(5).Text("Reward Metrics").FontSize(12).SemiBold().FontColor(TextColor);
+                            statsCol.Item().Table(table => 
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(100);
+                                    columns.RelativeColumn();
+                                });
+                                
+                                foreach (var kv in rewardStats)
+                                {
+                                    table.Cell().Element(CellStyle).Text(FormatStatName(kv.Key)).SemiBold();
+                                    table.Cell().Element(CellStyle).Text(FormatValue(kv.Value, "F2"));
+                                }
+                            });
+                            
+                            // Length statistics
+                            statsCol.Item().PaddingTop(5).Text("Episode Length Metrics").FontSize(12).SemiBold().FontColor(TextColor);
+                            statsCol.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(100);
+                                    columns.RelativeColumn();
+                                });
+                                
+                                foreach (var kv in lengthStats)
+                                {
+                                    table.Cell().Element(CellStyle).Text(FormatStatName(kv.Key)).SemiBold();
+                                    table.Cell().Element(CellStyle).Text(FormatValue(kv.Value, "F1"));
+                                }
+                            });
+                            
+                            // Success rate
+                            statsCol.Item().PaddingTop(5).Grid(grid => 
+                            {
+                                grid.Columns(2);
+                                grid.Item().Text("Success Rate:").SemiBold();
+                                grid.Item().Text(successRate.ToString("P1"));
+                            });
+                        });
+                    
+                    // Charts Section
+                    col.Item().PaddingTop(15).Container()
+                        .Column(chartsCol =>
+                        {
+                            // Reward Chart
+                            chartsCol.Item().Container().Border(1).BorderColor(BorderColor).Padding(5)
+                                .Column(columnItem =>
+                                {
+                                    columnItem.Item().Text("Reward Curve").FontSize(14).SemiBold().FontColor(PrimaryColor);
+                                    columnItem.Item().Image(SvgToPng(rewardChartSvg)).FitWidth();
+                                });
+                            
+                            // Episode Length Chart
+                            chartsCol.Item().PaddingTop(10).Container().Border(1).BorderColor(BorderColor).Padding(5)
+                                .Column(columnItem =>
+                                {
+                                    columnItem.Item().Text("Episode Length Curve").FontSize(14).SemiBold().FontColor(PrimaryColor);
+                                    columnItem.Item().Image(SvgToPng(lengthChartSvg)).FitWidth();
+                                });
+                            
+                            // Loss Chart (if available)
+                            if (!string.IsNullOrWhiteSpace(lossChartSvg))
+                            {
+                                chartsCol.Item().PaddingTop(10).Container().Border(1).BorderColor(BorderColor).Padding(5)
+                                    .Column(columnItem =>
+                                    {
+                                        columnItem.Item().Text("Loss Curve").FontSize(14).SemiBold().FontColor(PrimaryColor);
+                                        columnItem.Item().Image(SvgToPng(lossChartSvg)).FitWidth();
+                                    });
+                            }
+                        });
+                    
+                    // Per-Episode Table (if available)
                     if (perEpisodeStats != null && perEpisodeStats.Count > 0)
                     {
-                        col.Item().PaddingTop(10).Text("Per-Episode Table").FontSize(16).Bold();
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
+                        col.Item().PaddingTop(15).Container().Border(1).BorderColor(BorderColor).Padding(5)
+                            .Column(tableCol =>
                             {
-                                columns.ConstantColumn(60); // Ep
-                                columns.ConstantColumn(80); // Reward
-                                columns.ConstantColumn(60); // Length
-                                columns.ConstantColumn(60); // Loss
+                                tableCol.Item().Text("Per-Episode Statistics").FontSize(14).SemiBold().FontColor(PrimaryColor);
+                                tableCol.Item().PaddingTop(5).Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.ConstantColumn(60); // Ep
+                                        columns.ConstantColumn(80); // Reward
+                                        columns.ConstantColumn(80); // Length
+                                        columns.ConstantColumn(80); // Loss
+                                    });
+                                    
+                                    // Header row
+                                    table.Cell().Element(HeaderCellStyle).Text("Episode").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Reward").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Length").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Loss").SemiBold();
+                                    
+                                    // Only show a reasonable number of rows (first 10, last 10)
+                                    var firstRows = perEpisodeStats.Take(10).ToList();
+                                    var lastRows = perEpisodeStats.Count > 20 
+                                        ? perEpisodeStats.Skip(perEpisodeStats.Count - 10).Take(10).ToList() 
+                                        : new List<EpisodeStats>();
+                                    
+                                    foreach (var ep in firstRows)
+                                    {
+                                        table.Cell().Element(CellStyle).Text(ep.Episode.ToString());
+                                        table.Cell().Element(CellStyle).Text(ep.Reward.ToString("F2"));
+                                        table.Cell().Element(CellStyle).Text(ep.Length.ToString());
+                                        table.Cell().Element(CellStyle).Text(ep.Loss?.ToString("F4") ?? "");
+                                    }
+                                    
+                                    if (perEpisodeStats.Count > 20)
+                                    {
+                                        // Add separator row
+                                        table.Cell().Element(CellStyle).Text("...");
+                                        table.Cell().Element(CellStyle).Text("...");
+                                        table.Cell().Element(CellStyle).Text("...");
+                                        table.Cell().Element(CellStyle).Text("...");
+                                    }
+                                    
+                                    foreach (var ep in lastRows)
+                                    {
+                                        table.Cell().Element(CellStyle).Text(ep.Episode.ToString());
+                                        table.Cell().Element(CellStyle).Text(ep.Reward.ToString("F2"));
+                                        table.Cell().Element(CellStyle).Text(ep.Length.ToString());
+                                        table.Cell().Element(CellStyle).Text(ep.Loss?.ToString("F4") ?? "");
+                                    }
+                                });
                             });
-                            table.Cell().Element(CellStyle).Text("Ep").Bold();
-                            table.Cell().Element(CellStyle).Text("Reward").Bold();
-                            table.Cell().Element(CellStyle).Text("Length").Bold();
-                            table.Cell().Element(CellStyle).Text("Loss").Bold();
-                            foreach (var ep in perEpisodeStats)
-                            {
-                                table.Cell().Element(CellStyle).Text(ep.Episode.ToString());
-                                table.Cell().Element(CellStyle).Text(ep.Reward.ToString("F2"));
-                                table.Cell().Element(CellStyle).Text(ep.Length.ToString());
-                                table.Cell().Element(CellStyle).Text(ep.Loss?.ToString("F4") ?? "");
-                            }
-                        });
                     }
+                    
+                    // Best Episode Trajectory (if available)
                     if (bestTrajectory != null && bestTrajectory.Count > 0)
                     {
-                        col.Item().PaddingTop(10).Text("Best Episode Trajectory").FontSize(16).Bold();
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
+                        col.Item().PaddingTop(15).PageBreak();
+                        col.Item().Container().Border(1).BorderColor(BorderColor).Padding(5)
+                            .Column(tableCol =>
                             {
-                                columns.ConstantColumn(60); // Step
-                                columns.ConstantColumn(120); // State
-                                columns.ConstantColumn(60); // Action
-                                columns.ConstantColumn(60); // Reward
+                                tableCol.Item().Text("Best Episode Trajectory").FontSize(14).SemiBold().FontColor(SecondaryColor);
+                                tableCol.Item().PaddingTop(5).Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.ConstantColumn(60); // Step
+                                        columns.RelativeColumn(); // State
+                                        columns.ConstantColumn(80); // Action
+                                        columns.ConstantColumn(80); // Reward
+                                    });
+                                    
+                                    // Header row
+                                    table.Cell().Element(HeaderCellStyle).Text("Step").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("State").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Action").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Reward").SemiBold();
+                                    
+                                    foreach (var t in bestTrajectory)
+                                    {
+                                        table.Cell().Element(CellStyle).Text(t.Step.ToString());
+                                        table.Cell().Element(CellStyle).Text(t.State?.ToString() ?? "");
+                                        table.Cell().Element(CellStyle).Text(t.Action?.ToString() ?? "");
+                                        table.Cell().Element(CellStyle).Text(t.Reward.ToString("F2"));
+                                    }
+                                });
                             });
-                            table.Cell().Element(CellStyle).Text("Step").Bold();
-                            table.Cell().Element(CellStyle).Text("State").Bold();
-                            table.Cell().Element(CellStyle).Text("Action").Bold();
-                            table.Cell().Element(CellStyle).Text("Reward").Bold();
-                            foreach (var t in bestTrajectory)
-                            {
-                                table.Cell().Element(CellStyle).Text(t.Step.ToString());
-                                table.Cell().Element(CellStyle).Text(t.State?.ToString() ?? "");
-                                table.Cell().Element(CellStyle).Text(t.Action?.ToString() ?? "");
-                                table.Cell().Element(CellStyle).Text(t.Reward.ToString("F2"));
-                            }
-                        });
                     }
+                    
+                    // Worst Episode Trajectory (if available)
                     if (worstTrajectory != null && worstTrajectory.Count > 0)
                     {
-                        col.Item().PaddingTop(10).Text("Worst Episode Trajectory").FontSize(16).Bold();
-                        col.Item().Table(table =>
-                        {
-                            table.ColumnsDefinition(columns =>
+                        col.Item().PaddingTop(15).Container().Border(1).BorderColor(BorderColor).Padding(5)
+                            .Column(tableCol =>
                             {
-                                columns.ConstantColumn(60); // Step
-                                columns.ConstantColumn(120); // State
-                                columns.ConstantColumn(60); // Action
-                                columns.ConstantColumn(60); // Reward
+                                tableCol.Item().Text("Worst Episode Trajectory").FontSize(14).SemiBold().FontColor(AccentColor);
+                                tableCol.Item().PaddingTop(5).Table(table =>
+                                {
+                                    table.ColumnsDefinition(columns =>
+                                    {
+                                        columns.ConstantColumn(60); // Step
+                                        columns.RelativeColumn(); // State
+                                        columns.ConstantColumn(80); // Action
+                                        columns.ConstantColumn(80); // Reward
+                                    });
+                                    
+                                    // Header row
+                                    table.Cell().Element(HeaderCellStyle).Text("Step").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("State").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Action").SemiBold();
+                                    table.Cell().Element(HeaderCellStyle).Text("Reward").SemiBold();
+                                    
+                                    foreach (var t in worstTrajectory)
+                                    {
+                                        table.Cell().Element(CellStyle).Text(t.Step.ToString());
+                                        table.Cell().Element(CellStyle).Text(t.State?.ToString() ?? "");
+                                        table.Cell().Element(CellStyle).Text(t.Action?.ToString() ?? "");
+                                        table.Cell().Element(CellStyle).Text(t.Reward.ToString("F2"));
+                                    }
+                                });
                             });
-                            table.Cell().Element(CellStyle).Text("Step").Bold();
-                            table.Cell().Element(CellStyle).Text("State").Bold();
-                            table.Cell().Element(CellStyle).Text("Action").Bold();
-                            table.Cell().Element(CellStyle).Text("Reward").Bold();
-                            foreach (var t in worstTrajectory)
-                            {
-                                table.Cell().Element(CellStyle).Text(t.Step.ToString());
-                                table.Cell().Element(CellStyle).Text(t.State?.ToString() ?? "");
-                                table.Cell().Element(CellStyle).Text(t.Action?.ToString() ?? "");
-                                table.Cell().Element(CellStyle).Text(t.Reward.ToString("F2"));
-                            }
-                        });
                     }
                 });
-                page.Footer().AlignCenter().Text(t =>
+                
+                page.Footer().AlignCenter().Column(column => 
                 {
-                    t.Span("Generated by Gymnasium - ").FontSize(10).Italic();
-                    t.Span(date).FontSize(10);
+                    column.Item().BorderTop(1).BorderColor(BorderColor).PaddingTop(5);
+                    column.Item().Text(text =>
+                    {
+                        text.Span("Generated by Gymnasium.NET").FontSize(9).FontColor(SubtitleColor);
+                        text.Span(" | ").FontSize(9).FontColor(SubtitleColor);
+                        text.Span(date).FontSize(9).FontColor(SubtitleColor);
+                    });
                 });
             });
         }).GeneratePdf(filePath);
     }
 
-    private static IContainer CellStyle(IContainer container) => container.PaddingVertical(2).PaddingHorizontal(4);
+    private static IContainer HeaderCellStyle(IContainer container) => 
+        container.DefaultTextStyle(x => x.SemiBold())
+            .PaddingVertical(5).PaddingHorizontal(5)
+            .Border(1).BorderColor(BorderColor)
+            .Background(HeaderBgColor);
 
-    // Converts SVG to PNG byte[] for embedding in PDF (using SkiaSharp or similar)
+    private static IContainer CellStyle(IContainer container) => 
+        container.PaddingVertical(3).PaddingHorizontal(5)
+            .Border(1).BorderColor(BorderColor);
+
+    private static string FormatStatName(string key)
+    {
+        switch (key.ToLower())
+        {
+            case "mean": return "Mean";
+            case "min": return "Minimum";
+            case "max": return "Maximum";
+            case "std": return "Std. Dev.";
+            case "median": return "Median";
+            case "p25": return "25th Perc.";
+            case "p75": return "75th Perc.";
+            default: return key;
+        }
+    }
+
+    private static string FormatValue(double value, string format)
+    {
+        return value.ToString(format);
+    }
+
+    // Converts SVG to PNG byte[] for embedding in PDF
     private static byte[] SvgToPng(string svg)
     {
         // For simplicity, use a placeholder image if SVG conversion is not implemented
         // In production, use SkiaSharp.Svg or similar to render SVG to PNG
-        return Placeholders.Image(400, 120);
+        return Placeholders.Image(600, 300);
     }
 }
