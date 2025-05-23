@@ -1,6 +1,7 @@
 using Avalonia;
 using System;
 using System.Diagnostics;
+using Avalonia.Logging;
 
 namespace Gymnasium.UI;
 
@@ -84,30 +85,104 @@ sealed class Program
         
         try 
         {
-            // Log out available platform backends
-            Console.WriteLine("Available Avalonia backends:");
-            var backends = AvaloniaLocator.Current.GetService<Avalonia.Platform.IPlatformManager>()?.GetAvailablePlatforms();
-            if (backends != null)
-            {
-                foreach (var backend in backends)
-                {
-                    Console.WriteLine($" - {backend}");
-                }
-            }
-            else
-            {
-                Console.WriteLine(" - None detected");
-            }
+            // In Avalonia 11.x, we can't enumerate backends this way
+            // Instead, just log that we're going to use platform detection
+            Console.WriteLine("Using Avalonia platform detection...");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error detecting Avalonia backends: {ex.Message}");
+            Console.WriteLine($"Error during initialization: {ex.Message}");
         }
         
-        return AppBuilder.Configure<App>()
+        var builder = AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
-            .LogToTrace()
-            .LogToConsole(); // Add console logging for better troubleshooting
+            .LogToTrace();
+            
+        // Setup console logging manually since LogToConsole may not be available
+        Logger.Sink = new CompositeLogSink(
+            Logger.Sink,
+            new ConsoleLogSink(LogEventLevel.Debug)
+        );
+            
+        return builder;
+    }
+    
+    // Composite log sink to handle multiple log sinks
+    private class CompositeLogSink : ILogSink
+    {
+        private readonly ILogSink[] _sinks;
+
+        public CompositeLogSink(params ILogSink[] sinks)
+        {
+            _sinks = sinks;
+        }
+
+        public bool IsEnabled(LogEventLevel level, string area)
+        {
+            foreach (var sink in _sinks)
+            {
+                if (sink.IsEnabled(level, area))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void Log(LogEventLevel level, string area, object source, string messageTemplate)
+        {
+            foreach (var sink in _sinks)
+            {
+                if (sink.IsEnabled(level, area))
+                {
+                    sink.Log(level, area, source, messageTemplate);
+                }
+            }
+        }
+
+        public void Log(LogEventLevel level, string area, object source, string messageTemplate, params object[] propertyValues)
+        {
+            foreach (var sink in _sinks)
+            {
+                if (sink.IsEnabled(level, area))
+                {
+                    sink.Log(level, area, source, messageTemplate, propertyValues);
+                }
+            }
+        }
+    }
+    
+    // Custom console log sink class for Avalonia
+    private class ConsoleLogSink : ILogSink
+    {
+        private readonly LogEventLevel _minLevel;
+
+        public ConsoleLogSink(LogEventLevel minLevel)
+        {
+            _minLevel = minLevel;
+        }
+
+        public bool IsEnabled(LogEventLevel level, string area)
+        {
+            return level >= _minLevel;
+        }
+
+        public void Log(LogEventLevel level, string area, object source, string messageTemplate)
+        {
+            if (IsEnabled(level, area))
+            {
+                Console.WriteLine($"[{level}] {area}: {messageTemplate}");
+            }
+        }
+
+        public void Log(LogEventLevel level, string area, object source, string messageTemplate, params object[] propertyValues)
+        {
+            if (IsEnabled(level, area))
+            {
+                var message = string.Format(messageTemplate, propertyValues);
+                Console.WriteLine($"[{level}] {area}: {message}");
+            }
+        }
     }
 }
