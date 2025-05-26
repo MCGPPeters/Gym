@@ -43,7 +43,15 @@ public partial class MainWindowViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedEnvironment, value))
             {
+                try
+                {
+                    System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: SelectedEnvironment changed to {value ?? "null"}\n");
+                    System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CanStartTraining is now {CanStartTraining}\n");
+                }
+                catch { /* Ignore logging errors */ }
+                
                 UpdateEnvironmentInfo();
+                (StartTrainingCommand as IRelayCommand)?.NotifyCanExecuteChanged();
             }
         }
     }
@@ -57,7 +65,15 @@ public partial class MainWindowViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedAgent, value))
             {
-                UpdateEnvironmentInfo();
+                try
+                {
+                    System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: SelectedAgent changed to {value ?? "null"}\n");
+                    System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CanStartTraining is now {CanStartTraining}\n");
+                }
+                catch { /* Ignore logging errors */ }
+                
+                (StartTrainingCommand as IRelayCommand)?.NotifyCanExecuteChanged();
+                // UpdateAgentInfo not needed as this info is set elsewhere
             }
         }
     }
@@ -80,10 +96,23 @@ public partial class MainWindowViewModel : ObservableObject
     public bool IsTraining
     {
         get => _isTraining;
-        set => SetProperty(ref _isTraining, value);
+        set 
+        { 
+            SetProperty(ref _isTraining, value);
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: IsTraining changed to {value}\n");
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CanStartTraining is now {CanStartTraining}\n");
+        }
     }
 
-    public bool CanStartTraining => !IsTraining;
+    public bool CanStartTraining 
+    { 
+        get 
+        {
+            bool canStart = !IsTraining && !string.IsNullOrEmpty(SelectedEnvironment) && !string.IsNullOrEmpty(SelectedAgent);
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CanStartTraining calculated: {canStart} (IsTraining={IsTraining}, SelectedEnv={SelectedEnvironment ?? "null"}, SelectedAgent={SelectedAgent ?? "null"})\n");
+            return canStart;
+        }
+    }
 
     private string? _pluginError;
     public string? PluginError
@@ -113,27 +142,67 @@ public partial class MainWindowViewModel : ObservableObject
     private int? _bestEpisodeIndex = null;
     private int? _worstEpisodeIndex = null;
     private List<EpisodeTrajectory>? _bestEpisodeTrajectory = null;
-    private List<EpisodeTrajectory>? _worstEpisodeTrajectory = null;    public MainWindowViewModel()
+    private List<EpisodeTrajectory>? _worstEpisodeTrajectory = null;    
+    public MainWindowViewModel()
     {
-        DiscoverAgentPlugins();
-        StartTrainingCommand = new AsyncRelayCommand(StartTraining, () => CanStartTraining);
-        
-        // Setup duration timer
-        durationTimer = new System.Timers.Timer(1000);
-        durationTimer.Elapsed += (s, e) => 
+        try
         {
-            if (sessionStartTime.HasValue && IsTraining)
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: MainWindowViewModel constructor starting\n");
+              // Register all environments first!
+            Gymnasium.GymnasiumRegistration.RegisterAll();
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: Environments registered\n");
+            
+            // Test if registration worked
+            try
             {
-                TimeSpan duration = DateTime.Now - sessionStartTime.Value;
-                Dispatcher.UIThread.InvokeAsync(() => 
-                {
-                    SessionDuration = $"{duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
-                });
+                var testEnv = Gymnasium.EnvRegistry.Make("CartPole-v1");
+                System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CartPole-v1 registration test: SUCCESS\n");
             }
-        };
-        
-        // Set default environment info
-        UpdateEnvironmentInfo();
+            catch (Exception ex)
+            {
+                System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CartPole-v1 registration test: FAILED - {ex.Message}\n");
+            }
+            
+            DiscoverAgentPlugins();
+            StartTrainingCommand = new AsyncRelayCommand(StartTraining, () => CanStartTraining);
+            
+            // Default selections
+            if (Environments.Count > 0 && SelectedEnvironment == null)
+            {
+                SelectedEnvironment = Environments[0];
+                System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: Default environment set to {SelectedEnvironment}\n");
+            }
+            
+            if (Agents.Count > 0 && SelectedAgent == null)
+            {
+                SelectedAgent = Agents[0];
+                System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: Default agent set to {SelectedAgent}\n");
+            }
+            
+            // Setup duration timer
+            durationTimer = new System.Timers.Timer(1000);
+            durationTimer.Elapsed += (s, e) => 
+            {
+                if (sessionStartTime.HasValue && IsTraining)
+                {
+                    TimeSpan duration = DateTime.Now - sessionStartTime.Value;
+                    Dispatcher.UIThread.InvokeAsync(() => 
+                    {
+                        SessionDuration = $"{duration.Hours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+                    });
+                }
+            };
+            
+            // Set default environment info
+            UpdateEnvironmentInfo();
+            
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: MainWindowViewModel constructor completed. CanStartTraining={CanStartTraining}\n");
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: Command CanExecute={StartTrainingCommand.CanExecute(null)}\n");
+        }
+        catch (Exception ex)
+        {
+            System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: ERROR in constructor: {ex.Message}\n{ex.StackTrace}\n");
+        }
     }
 
     private void SetIsTraining(bool value)
@@ -143,6 +212,7 @@ public partial class MainWindowViewModel : ObservableObject
             _isTraining = value;
             OnPropertyChanged(nameof(IsTraining));
             OnPropertyChanged(nameof(CanStartTraining));
+            (StartTrainingCommand as IRelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 
@@ -153,260 +223,358 @@ public partial class MainWindowViewModel : ObservableObject
 
     private async Task StartTraining()
     {
-        if (string.IsNullOrEmpty(SelectedEnvironment) || string.IsNullOrEmpty(SelectedAgent)) return;
-        SetIsTraining(true);
-        StatusMessage = "Initializing training...";
-        sessionStartTime = DateTime.Now;
-        durationTimer?.Start();
-        TrainingProgress = 0;
-        CurrentEpisode = "0";
-        LastReward = "N/A";
-        SuccessRate = "N/A";
-
-        _rewardHistory.Clear();
-        _episodeLengths.Clear();
-        _episodeSuccesses.Clear();
-        _lossHistory.Clear();
-        _perEpisodeStats.Clear();
-        _bestEpisodeIndex = null;
-        _worstEpisodeIndex = null;
-        _bestEpisodeTrajectory = null;
-        _worstEpisodeTrajectory = null;
-        double bestReward = double.MinValue;
-        double worstReward = double.MaxValue;
-        List<EpisodeTrajectory>? bestTraj = null;
-        List<EpisodeTrajectory>? worstTraj = null;
         try
         {
-            dynamic env = EnvRegistry.Make<object, object>(SelectedEnvironment);
-            var agentPlugin = _agentPlugins[SelectedAgent];
-            var agent = agentPlugin.CreateAgent(env);
-            var getLoss = agentPlugin.GetLossFetcher(agent);
-            int totalEpisodes = Episodes;
-            int maxSteps = StepsPerEpisode;
-            var rewards = new double[totalEpisodes];
-            for (int ep = 0; ep < totalEpisodes; ep++)
+            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: StartTraining method called\n");
+            
+            if (string.IsNullOrEmpty(SelectedEnvironment) || string.IsNullOrEmpty(SelectedAgent))
             {
-                await Dispatcher.UIThread.InvokeAsync(() => 
-                {
-                    CurrentEpisode = $"{ep + 1}/{totalEpisodes}";
-                    TrainingProgress = (double)(ep + 1) / totalEpisodes * 100;
-                    StatusMessage = $"Running episode {ep + 1}...";
-                });
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Missing environment or agent selection\n");
+                return;
+            }
+            
+            SetIsTraining(true);
+            StatusMessage = "Initializing training...";
+            sessionStartTime = DateTime.Now;
+            durationTimer?.Start();
+            TrainingProgress = 0;
+            CurrentEpisode = "0";
+            LastReward = "N/A";
+            SuccessRate = "N/A";
 
-                dynamic state = env.Reset();
-                double totalReward = 0;
-                int steps = 0;
-                bool success = false;
-                double episodeLoss = 0;
-                int lossCount = 0;
-                var trajectory = new List<EpisodeTrajectory>();
-                for (int step = 0; step < maxSteps; step++)
-                {
-                    dynamic action = agent.Act(state);
-                    var result = env.Step(action);
-                    var nextState = result.state;
-                    var reward = result.reward;
-                    var done = result.done;
-                    var info = result.info;
-                    totalReward += reward;
-                    // CartPole rendering example
-                    if (SelectedEnvironment == "CartPole-v1" && EnvironmentView is Views.EnvironmentRenderView renderView)
-                    {
-                        float x = 0, theta = 0;
-                        if (nextState is ValueTuple<float, float, float, float> tuple)
-                        {
-                            x = tuple.Item1;
-                            theta = tuple.Item3;
-                        }
-                        await Dispatcher.UIThread.InvokeAsync(() => renderView.RenderCartPole(x, theta));
-                    }
-                    // MountainCar rendering
-                    if ((SelectedEnvironment == "MountainCar-v0" || SelectedEnvironment == "MountainCarContinuous-v0") && EnvironmentView is Views.EnvironmentRenderView renderView2)
-                    {
-                        float position = 0, velocity = 0;
-                        if (nextState is ValueTuple<float, float> tuple)
-                        {
-                            position = tuple.Item1;
-                            velocity = tuple.Item2;
-                        }
-                        await Dispatcher.UIThread.InvokeAsync(() => renderView2.RenderMountainCar(position, velocity));
-                    }
-                    // Acrobot rendering
-                    if (SelectedEnvironment == "Acrobot-v1" && EnvironmentView is Views.EnvironmentRenderView renderView3)
-                    {
-                        if (nextState is float[] arr && arr.Length >= 6)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView3.RenderAcrobot(arr));
-                        }
-                    }
-                    // Pendulum rendering
-                    if (SelectedEnvironment == "Pendulum-v1" && EnvironmentView is Views.EnvironmentRenderView renderView4)
-                    {
-                        if (nextState is float[] arr && arr.Length >= 3)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView4.RenderPendulum(arr));
-                        }
-                    }
-                    // FrozenLake rendering
-                    if (SelectedEnvironment == "FrozenLake-v1" && EnvironmentView is Views.EnvironmentRenderView renderView5)
-                    {
-                        int nrow = 4, ncol = 4, goal = 15;
-                        var holes = new HashSet<int> { 5, 7, 11, 12 };
-                        if (nextState is int s)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView5.RenderFrozenLake(s, nrow, ncol, holes, goal));
-                        }
-                    }
-                    // Taxi rendering
-                    if (SelectedEnvironment == "Taxi-v3" && EnvironmentView is Views.EnvironmentRenderView renderView6)
-                    {
-                        if (nextState is int s)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView6.RenderTaxi(s));
-                        }
-                    }
-                    // CliffWalking rendering
-                    if (SelectedEnvironment == "CliffWalking-v0" && EnvironmentView is Views.EnvironmentRenderView renderView7)
-                    {
-                        int nrow = 4, ncol = 12, goal = 47;
-                        var cliff = new HashSet<int>();
-                        for (int c = 1; c < 11; c++) cliff.Add(36 + c);
-                        if (nextState is int s)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView7.RenderCliffWalking(s, nrow, ncol, cliff, goal));
-                        }
-                    }
-                    // Blackjack rendering
-                    if (SelectedEnvironment == "Blackjack-v1" && EnvironmentView is Views.EnvironmentRenderView renderView8)
-                    {
-                        if (nextState is ValueTuple<int, int, bool> tuple)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView8.RenderBlackjack(tuple));
-                        }
-                    }
-                    // LunarLander rendering
-                    if (SelectedEnvironment == "LunarLander-v2" && EnvironmentView is Views.EnvironmentRenderView renderView9)
-                    {
-                        if (nextState is float[] arr)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView9.RenderLunarLander(arr));
-                        }
-                    }
-                    // BipedalWalker rendering
-                    if (SelectedEnvironment == "BipedalWalker-v3" && EnvironmentView is Views.EnvironmentRenderView renderView10)
-                    {
-                        if (nextState is float[] arr)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView10.RenderBipedalWalker(arr));
-                        }
-                    }
-                    // CarRacing rendering
-                    if (SelectedEnvironment == "CarRacing-v2" && EnvironmentView is Views.EnvironmentRenderView renderView11)
-                    {
-                        if (nextState is float[] arr)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView11.RenderCarRacing(arr));
-                        }
-                    }
-                    // AtariStub rendering
-                    if (SelectedEnvironment == "AtariStub-v0" && EnvironmentView is Views.EnvironmentRenderView renderView12)
-                    {
-                        if (nextState is int[] arr)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView12.RenderAtariStub(arr));
-                        }
-                    }
-                    // MujocoStub rendering
-                    if (SelectedEnvironment == "MujocoStub-v0" && EnvironmentView is Views.EnvironmentRenderView renderView13)
-                    {
-                        if (nextState is float[] arr)
-                        {
-                            await Dispatcher.UIThread.InvokeAsync(() => renderView13.RenderMujocoStub(arr));
-                        }
-                    }
-                    trajectory.Add(new EpisodeTrajectory {
-                        Step = step + 1,
-                        State = state,
-                        Action = action,
-                        Reward = reward
-                    });
-                    steps++;
-                    if (done)
-                    {
-                        // Heuristic: success if reward > 0 or done at goal (customize per env)
-                        success = reward > 0 || (SelectedEnvironment?.Contains("FrozenLake") == true && reward == 1.0);
-                        break;
-                    }
-                    state = nextState;
-                }
-                rewards[ep] = totalReward;
-                _rewardHistory.Add(totalReward);
-                _episodeLengths.Add(steps);
-                _episodeSuccesses.Add(success);
+            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Training initialization complete\n");
 
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    LastReward = totalReward.ToString("F2");
-                    var last100Successes = _episodeSuccesses.Count > 100 ? _episodeSuccesses.GetRange(_episodeSuccesses.Count - 100, 100) : _episodeSuccesses;
-                    SuccessRate = $"{CalculateSuccessRate(last100Successes):P1}";
-                });
+            _rewardHistory.Clear();
+            _episodeLengths.Clear();
+            _episodeSuccesses.Clear();
+            _lossHistory.Clear();
+            _perEpisodeStats.Clear();
+            _bestEpisodeIndex = null;
+            _worstEpisodeIndex = null;
+            _bestEpisodeTrajectory = null;
+            _worstEpisodeTrajectory = null;
+            double bestReward = double.MinValue;
+            double worstReward = double.MaxValue;
+            List<EpisodeTrajectory>? bestTraj = null;
+            List<EpisodeTrajectory>? worstTraj = null;
+            try
+            {
+                // Extra debug info for troubleshooting
+                StatusMessage = $"Training started. SelectedAgent: {SelectedAgent}, SelectedEnvironment: {SelectedEnvironment}. Agents loaded: {string.Join(", ", _agentPlugins.Keys)}";
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: {StatusMessage}\n");                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Creating environment: {SelectedEnvironment}\n");
                 
-                _perEpisodeStats.Add(new EpisodeStats {
-                    Episode = ep + 1,
-                    Reward = totalReward,
-                    Length = steps,
-                    Loss = (lossCount > 0) ? (double?)(episodeLoss / lossCount) : null
-                });
-                // Compute stats
-                var rewardsWindow = _rewardHistory.Count > 100 ? _rewardHistory.GetRange(_rewardHistory.Count - 100, 100) : _rewardHistory;
-                var lengthsWindow = _episodeLengths.Count > 100 ? _episodeLengths.GetRange(_episodeLengths.Count - 100, 100) : _episodeLengths;
-                string stats = $"Episode {ep+1}/{totalEpisodes}, Reward: {totalReward}, Steps: {steps}\n" +
-                    $"Reward (last 100): mean={Mean(rewardsWindow):F2}, min={Min(rewardsWindow):F2}, max={Max(rewardsWindow):F2}, std={Std(rewardsWindow):F2}\n" +
-                    $"Length (last 100): mean={Mean(lengthsWindow.Select(x=>(double)x).ToList()):F2}, min={Min(lengthsWindow.Select(x=>(double)x).ToList()):F2}, max={Max(lengthsWindow.Select(x=>(double)x).ToList()):F2}, std={Std(lengthsWindow.Select(x=>(double)x).ToList()):F2}\n" +
-                    $"Success rate (last 100): {CalculateSuccessRate(_episodeSuccesses):P1}";
-                await Dispatcher.UIThread.InvokeAsync(() => {
-                    TrainingStatsView = stats;
-                    TrainingStatsSummary = stats;
-                });
-                if (RewardChartView is Views.RewardChartView chartView)
+                dynamic env = EnvRegistry.Make(SelectedEnvironment);
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Environment created: {(env != null ? "success" : "FAILED")}\n");
+                
+                if (!_agentPlugins.ContainsKey(SelectedAgent))
                 {
-                    var last100 = _rewardHistory.Count > 100 ? _rewardHistory.GetRange(_rewardHistory.Count - 100, 100) : _rewardHistory;
-                    await Dispatcher.UIThread.InvokeAsync(() => chartView.RenderRewards(last100));
+                    StatusMessage = $"Agent plugin not found: {SelectedAgent}. Available: {string.Join(", ", _agentPlugins.Keys)}";
+                    System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: ERROR - {StatusMessage}\n");
+                    SetIsTraining(false);
+                    return;
                 }
-                if (EpisodeLengthChartView is Views.EpisodeLengthChartView lenChartView)
+                
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Getting agent plugin: {SelectedAgent}\n");
+                var agentPlugin = _agentPlugins[SelectedAgent];
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Agent plugin retrieved: {(agentPlugin != null ? "success" : "FAILED")}\n");
+                
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Creating agent\n");
+                var agent = agentPlugin.CreateAgent(env);
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Agent created: {(agent != null ? "success" : "FAILED")}\n");
+                
+                var getLoss = agentPlugin.GetLossFetcher(agent);
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Loss fetcher retrieved: {(getLoss != null ? "success" : "FAILED")}\n");
+                
+                int totalEpisodes = Episodes;
+                int maxSteps = StepsPerEpisode;
+                var rewards = new double[totalEpisodes];
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Starting episodes loop. TotalEpisodes={totalEpisodes}, MaxSteps={maxSteps}\n");
+                
+                for (int ep = 0; ep < totalEpisodes; ep++)
                 {
-                    var last100 = _episodeLengths.Count > 100 ? _episodeLengths.GetRange(_episodeLengths.Count - 100, 100) : _episodeLengths;
-                    await Dispatcher.UIThread.InvokeAsync(() => lenChartView.RenderLengths(last100));
+                    System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Starting episode {ep+1}/{totalEpisodes}\n");
+
+                    await Dispatcher.UIThread.InvokeAsync(() => 
+                    {
+                        CurrentEpisode = $"{ep + 1}/{totalEpisodes}";
+                        TrainingProgress = (double)(ep + 1) / totalEpisodes * 100;
+                        StatusMessage = $"Running episode {ep + 1}...";
+                    });
+
+                    dynamic state = env.Reset();
+                    double totalReward = 0;
+                    int steps = 0;
+                    bool success = false;
+                    double episodeLoss = 0;
+                    int lossCount = 0;
+                    var trajectory = new List<EpisodeTrajectory>();
+                    for (int step = 0; step < maxSteps; step++)
+                    {
+                        dynamic action = agent.Act(state);                        var result = env.Step(action);
+                        var nextState = result.Item1;  // state
+                        var reward = result.Item2;     // reward
+                        var done = result.Item3;       // done
+                        var info = result.Item4;       // info
+                        totalReward += reward;
+                        
+                        // Log environment rendering attempts
+                        System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Step {step} - Action taken, reward={reward}, done={done}\n");
+                        
+                        // CartPole rendering example
+                        if (SelectedEnvironment == "CartPole-v1" && EnvironmentView is Views.EnvironmentRenderView renderView)
+                        {
+                            try 
+                            {
+                                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Rendering CartPole\n");
+                                float x = 0, theta = 0;
+                                if (nextState is ValueTuple<float, float, float, float> tuple)
+                                {
+                                    x = tuple.Item1;
+                                    theta = tuple.Item3;
+                                }
+                                await Dispatcher.UIThread.InvokeAsync(() => {
+                                    try
+                                    {
+                                        renderView.RenderCartPole(x, theta);
+                                        System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: CartPole rendered successfully\n");
+                                    }
+                                    catch (Exception renderEx)
+                                    {
+                                        System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: CartPole render ERROR: {renderEx.Message}\n{renderEx.StackTrace}\n");
+                                    }
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: CartPole rendering preparation ERROR: {ex.Message}\n{ex.StackTrace}\n");
+                            }
+                        }
+                        // MountainCar rendering
+                        if ((SelectedEnvironment == "MountainCar-v0" || SelectedEnvironment == "MountainCarContinuous-v0") && EnvironmentView is Views.EnvironmentRenderView renderView2)
+                        {
+                            float position = 0, velocity = 0;
+                            if (nextState is ValueTuple<float, float> tuple)
+                            {
+                                position = tuple.Item1;
+                                velocity = tuple.Item2;
+                            }
+                            await Dispatcher.UIThread.InvokeAsync(() => renderView2.RenderMountainCar(position, velocity));
+                        }
+                        // Acrobot rendering
+                        if (SelectedEnvironment == "Acrobot-v1" && EnvironmentView is Views.EnvironmentRenderView renderView3)
+                        {
+                            if (nextState is float[] arr && arr.Length >= 6)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView3.RenderAcrobot(arr));
+                            }
+                        }
+                        // Pendulum rendering
+                        if (SelectedEnvironment == "Pendulum-v1" && EnvironmentView is Views.EnvironmentRenderView renderView4)
+                        {
+                            if (nextState is float[] arr && arr.Length >= 3)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView4.RenderPendulum(arr));
+                            }
+                        }
+                        // FrozenLake rendering
+                        if (SelectedEnvironment == "FrozenLake-v1" && EnvironmentView is Views.EnvironmentRenderView renderView5)
+                        {
+                            int nrow = 4, ncol = 4, goal = 15;
+                            var holes = new HashSet<int> { 5, 7, 11, 12 };
+                            if (nextState is int s)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView5.RenderFrozenLake(s, nrow, ncol, holes, goal));
+                            }
+                        }
+                        // Taxi rendering
+                        if (SelectedEnvironment == "Taxi-v3" && EnvironmentView is Views.EnvironmentRenderView renderView6)
+                        {
+                            if (nextState is int s)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView6.RenderTaxi(s));
+                            }
+                        }
+                        // CliffWalking rendering
+                        if (SelectedEnvironment == "CliffWalking-v0" && EnvironmentView is Views.EnvironmentRenderView renderView7)
+                        {
+                            int nrow = 4, ncol = 12, goal = 47;
+                            var cliff = new HashSet<int>();
+                            for (int c = 1; c < 11; c++) cliff.Add(36 + c);
+                            if (nextState is int s)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView7.RenderCliffWalking(s, nrow, ncol, cliff, goal));
+                            }
+                        }
+                        // Blackjack rendering
+                        if (SelectedEnvironment == "Blackjack-v1" && EnvironmentView is Views.EnvironmentRenderView renderView8)
+                        {
+                            if (nextState is ValueTuple<int, int, bool> tuple)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView8.RenderBlackjack(tuple));
+                            }
+                        }
+                        // LunarLander rendering
+                        if (SelectedEnvironment == "LunarLander-v2" && EnvironmentView is Views.EnvironmentRenderView renderView9)
+                        {
+                            if (nextState is float[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView9.RenderLunarLander(arr));
+                            }
+                        }
+                        // BipedalWalker rendering
+                        if (SelectedEnvironment == "BipedalWalker-v3" && EnvironmentView is Views.EnvironmentRenderView renderView10)
+                        {
+                            if (nextState is float[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView10.RenderBipedalWalker(arr));
+                            }
+                        }
+                        // CarRacing rendering
+                        if (SelectedEnvironment == "CarRacing-v2" && EnvironmentView is Views.EnvironmentRenderView renderView11)
+                        {
+                            if (nextState is float[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView11.RenderCarRacing(arr));
+                            }
+                        }
+                        // AtariStub rendering
+                        if (SelectedEnvironment == "AtariStub-v0" && EnvironmentView is Views.EnvironmentRenderView renderView12)
+                        {
+                            if (nextState is int[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView12.RenderAtariStub(arr));
+                            }
+                        }
+                        // MujocoStub rendering
+                        if (SelectedEnvironment == "MujocoStub-v0" && EnvironmentView is Views.EnvironmentRenderView renderView13)
+                        {
+                            if (nextState is float[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderView13.RenderMujocoStub(arr));
+                            }
+                        }
+                        trajectory.Add(new EpisodeTrajectory {
+                            Step = step + 1,
+                            State = state,
+                            Action = action,
+                            Reward = reward
+                        });
+                        steps++;
+                        if (done)
+                        {
+                            // Heuristic: success if reward > 0 or done at goal (customize per env)
+                            success = reward > 0 || (SelectedEnvironment?.Contains("FrozenLake") == true && reward == 1.0);
+                            break;
+                        }
+                        state = nextState;
+                    }
+                    rewards[ep] = totalReward;
+                    _rewardHistory.Add(totalReward);
+                    _episodeLengths.Add(steps);
+                    _episodeSuccesses.Add(success);
+
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        try
+                        {
+                            LastReward = totalReward.ToString("F2");
+                            var last100Successes = _episodeSuccesses.Count > 100 ? _episodeSuccesses.GetRange(_episodeSuccesses.Count - 100, 100) : _episodeSuccesses;
+                            SuccessRate = $"{CalculateSuccessRate(last100Successes):P1}";
+                            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Episode {ep+1} UI updated - LastReward={LastReward}, SuccessRate={SuccessRate}\n");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Episode UI update ERROR: {ex.Message}\n{ex.StackTrace}\n");
+                        }
+                    });
+                    
+                    System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Episode {ep+1} completed - Steps={steps}, TotalReward={totalReward}, Success={success}\n");
+                    
+                    _perEpisodeStats.Add(new EpisodeStats {
+                        Episode = ep + 1,
+                        Reward = totalReward,
+                        Length = steps,
+                        Loss = (lossCount > 0) ? (double?)(episodeLoss / lossCount) : null
+                    });
+                    // Compute stats
+                    var rewardsWindow = _rewardHistory.Count > 100 ? _rewardHistory.GetRange(_rewardHistory.Count - 100, 100) : _rewardHistory;
+                    var lengthsWindow = _episodeLengths.Count > 100 ? _episodeLengths.GetRange(_episodeLengths.Count - 100, 100) : _episodeLengths;
+                    string stats = $"Episode {ep+1}/{totalEpisodes}, Reward: {totalReward}, Steps: {steps}\n" +
+                        $"Reward (last 100): mean={Mean(rewardsWindow):F2}, min={Min(rewardsWindow):F2}, max={Max(rewardsWindow):F2}, std={Std(rewardsWindow):F2}\n" +
+                        $"Length (last 100): mean={Mean(lengthsWindow.Select(x=>(double)x).ToList()):F2}, min={Min(lengthsWindow.Select(x=>(double)x).ToList()):F2}, max={Max(lengthsWindow.Select(x=>(double)x).ToList()):F2}, std={Std(lengthsWindow.Select(x=>(double)x).ToList()):F2}\n" +
+                        $"Success rate (last 100): {CalculateSuccessRate(_episodeSuccesses):P1}";
+                    await Dispatcher.UIThread.InvokeAsync(() => {
+                        TrainingStatsView = stats;
+                        TrainingStatsSummary = stats;
+                    });
+                    if (RewardChartView is Views.RewardChartView chartView)
+                    {
+                        var last100 = _rewardHistory.Count > 100 ? _rewardHistory.GetRange(_rewardHistory.Count - 100, 100) : _rewardHistory;
+                        await Dispatcher.UIThread.InvokeAsync(() => chartView.RenderRewards(last100));
+                    }
+                    if (EpisodeLengthChartView is Views.EpisodeLengthChartView lenChartView)
+                    {
+                        var last100 = _episodeLengths.Count > 100 ? _episodeLengths.GetRange(_episodeLengths.Count - 100, 100) : _episodeLengths;
+                        await Dispatcher.UIThread.InvokeAsync(() => lenChartView.RenderLengths(last100));
+                    }
+                    if (LossChartView is Views.LossChartView lossChartView)
+                    {
+                        var last100 = _lossHistory.Count > 100 ? _lossHistory.GetRange(_lossHistory.Count - 100, 100) : _lossHistory;
+                        await Dispatcher.UIThread.InvokeAsync(() => lossChartView.RenderLosses(last100));
+                    }
+                    if (PerEpisodeTableView is Views.PerEpisodeTableView tableView)
+                    {
+                        await Dispatcher.UIThread.InvokeAsync(() => tableView.SetEpisodes(_perEpisodeStats));
+                    }
                 }
-                if (LossChartView is Views.LossChartView lossChartView)
+                _bestEpisodeTrajectory = bestTraj;
+                _worstEpisodeTrajectory = worstTraj;
+                StatusMessage = "Training completed.";
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Training successfully completed\n");
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Training error: {ex.Message}";
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: TRAINING ERROR: {ex.Message}\n{ex.StackTrace}\n");
+                
+                // Try to get more context on the error
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Error context - EnvironmentView null? {EnvironmentView == null}\n");
+                if (EnvironmentView != null)
                 {
-                    var last100 = _lossHistory.Count > 100 ? _lossHistory.GetRange(_lossHistory.Count - 100, 100) : _lossHistory;
-                    await Dispatcher.UIThread.InvokeAsync(() => lossChartView.RenderLosses(last100));
+                    System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: EnvironmentView type: {EnvironmentView.GetType().FullName}\n");
                 }
-                if (PerEpisodeTableView is Views.PerEpisodeTableView tableView)
+                
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Inner exception: {ex.InnerException?.Message ?? "none"}\n");
+                
+                if (ex.InnerException != null)
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => tableView.SetEpisodes(_perEpisodeStats));
+                    System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Inner stack trace: {ex.InnerException.StackTrace}\n");
                 }
             }
-            _bestEpisodeTrajectory = bestTraj;
-            _worstEpisodeTrajectory = worstTraj;
-            StatusMessage = "Training completed.";
+            finally
+            {
+                SetIsTraining(false);
+                durationTimer?.Stop();
+                if (sessionStartTime.HasValue)
+                {
+                    TimeSpan finalDuration = DateTime.Now - sessionStartTime.Value;
+                    SessionDuration = $"{finalDuration.Hours:00}:{finalDuration.Minutes:00}:{finalDuration.Seconds:00}";
+                }
+                System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Training process finished and cleaned up\n");
+            }
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Training error: {ex.Message}";
-        }
-        finally
-        {
+            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: CRITICAL ERROR in StartTraining: {ex.Message}\n{ex.StackTrace}\n");
+            StatusMessage = $"Critical error: {ex.Message}";
             SetIsTraining(false);
-            durationTimer?.Stop();
-            if (sessionStartTime.HasValue)
-            {
-                TimeSpan finalDuration = DateTime.Now - sessionStartTime.Value;
-                SessionDuration = $"{finalDuration.Hours:00}:{finalDuration.Minutes:00}:{finalDuration.Seconds:00}";
-            }
         }
+    }
+
+    public async Task CallStartTraining()
+    {
+        System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CallStartTraining method called\n");
+        await StartTraining();
     }
 
     private async Task AddPluginDllAsync()
@@ -453,6 +621,11 @@ public partial class MainWindowViewModel : ObservableObject
             var configuration = new ContainerConfiguration().WithAssemblies(assemblies);
             using var container = configuration.CreateContainer();
             plugins.AddRange(container.GetExports<IAgentPlugin>());
+            // Always add built-in RandomAgent if not present
+            if (!plugins.Any(p => p.Name == "RandomAgent (Built-in)"))
+            {
+                plugins.Add(new Gymnasium.UI.Agents.RandomAgentPlugin());
+            }
             Agents.Clear();
             foreach (var plugin in plugins)
                 Agents.Add(plugin.Name);
@@ -530,7 +703,6 @@ public partial class MainWindowViewModel : ObservableObject
                 LastReward = _rewardHistory.LastOrDefault().ToString("F2");
                 var successesToCalc = _episodeSuccesses.Count > 100 ? _episodeSuccesses.GetRange(_episodeSuccesses.Count - 100, 100) : _episodeSuccesses;
                 SuccessRate = $"{CalculateSuccessRate(successesToCalc):P1}";
-
 
                 OnPropertyChanged(nameof(SelectedEnvironment));
                 OnPropertyChanged(nameof(SelectedAgent));

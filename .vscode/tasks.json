@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Run Gymnasium.UI",
+			"command": "dotnet run --project Gymnasium.UI/Gymnasium.UI.csproj",
+			"group": "build",
+			"isBackground": false
+		}
+	]
+}

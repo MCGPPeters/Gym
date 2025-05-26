@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Gymnasium;
 
@@ -9,11 +10,10 @@ namespace Gymnasium;
 /// </summary>
 public static class EnvRegistry
 {
-    private static readonly Dictionary<string, Func<object>> _registry = new();
-
-    public static void Register(string id, Func<object> factory)
+    private static readonly Dictionary<string, Func<object>> _registry = new();    public static void Register(string id, Func<object> factory)
     {
         _registry[id] = factory;
+        System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Environment registered: {id}\n");
     }
 
     public static object Make(string id)

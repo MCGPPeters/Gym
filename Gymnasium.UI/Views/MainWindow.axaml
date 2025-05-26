@@ -6,7 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="Gymnasium.UI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        
         Title="Gymnasium - RL Environment Explorer"
         Background="#F7F9FC"
         WindowStartupLocation="CenterScreen"
@@ -28,12 +28,27 @@
     </Window.KeyBindings>
 
     <Window.Styles>
+        <!-- Primary button style -->
         <Style Selector="Button.primary">
-            <Setter Property="Background" Value="#2E7D32"/>
+            <Setter Property="Background" Value="#0044CC"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Padding" Value="16,8"/>
             <Setter Property="CornerRadius" Value="4"/>
             <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="Button.primary:pointerover">
+            <Setter Property="Background" Value="#388E3C"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.primary:pressed">
+            <Setter Property="Background" Value="#1B5E20"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        <Style Selector="Button.primary:disabled">
+            <Setter Property="Background" Value="#BDBDBD"/>
+            <Setter Property="Foreground" Value="#EEEEEE"/>
         </Style>
         <Style Selector="Button.secondary">
             <Setter Property="Background" Value="#546E7A"/>
@@ -99,7 +114,7 @@
         <Border DockPanel.Dock="Left" Width="300" Background="#FFFFFF" BoxShadow="2 0 10 0 #15000000" Padding="16">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <Image Source="/Assets/gymnasium-logo.png" Width="200" Margin="0,0,0,16" HorizontalAlignment="Left"/>
+                    <!-- Logo image removed for now -->
                     
                     <TextBlock Classes="header" Text="Configuration"/>
                     <Border Classes="card">
@@ -135,9 +150,15 @@
                             <TextBlock Text="Steps per Episode:" Margin="0,8,0,4"/>
                             <NumericUpDown Minimum="1" Maximum="10000" Value="{Binding StepsPerEpisode, Mode=TwoWay}" 
                                           FormatString="0" Watermark="Max steps per episode"/>
-                              <Button Classes="primary" Content="Start Training" Command="{Binding StartTrainingCommand}" 
-                                    Margin="0,16,0,0" IsEnabled="{Binding CanStartTraining}" HorizontalAlignment="Stretch"
-                                    ToolTip.Tip="Start the training process (F5)"/>
+                            <!-- Make button highly visible with direct styling -->                            <Grid Margin="0,16,0,0">
+                                <Border Background="#003399" CornerRadius="4" Margin="0">
+                                    <Border Background="#0044CC" CornerRadius="4" Margin="0,0,0,2">
+                                        <Button Classes="primary" Content="START TRAINING" Click="StartTrainingButton_Click"
+                                                IsEnabled="True" HorizontalAlignment="Stretch"
+                                                ToolTip.Tip="Start the training process (F5)" Margin="0"/>
+                                    </Border>
+                                </Border>
+                            </Grid>
                         </StackPanel>
                     </Border>
                     
