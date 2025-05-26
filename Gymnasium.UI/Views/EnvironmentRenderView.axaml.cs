@@ -726,5 +726,173 @@ public partial class EnvironmentRenderView : UserControl
             [Canvas.TopProperty] = 40.0
         };
         _canvas.Children.Add(text);
+    }    public void RenderPong(byte[] state)
+    {
+        if (_canvas == null || state == null) return;
+        _canvas.Children.Clear();
+        
+        double width = _canvas.Bounds.Width;
+        double height = _canvas.Bounds.Height;
+        
+        // State is RGB pixel data: 210 height x 160 width x 3 channels
+        const int gameWidth = 160;
+        const int gameHeight = 210;
+        const int channels = 3;
+        
+        // Background - classic Atari black
+        var background = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = width,
+            Height = height,
+            Fill = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+            [Canvas.LeftProperty] = 0,
+            [Canvas.TopProperty] = 0
+        };
+        _canvas.Children.Add(background);
+        
+        // Create scaled representation - render every 2nd pixel for better performance
+        double scaleX = width / gameWidth;
+        double scaleY = height / gameHeight;
+        
+        // Render the actual pixel data from the game
+        for (int y = 0; y < gameHeight; y += 2)
+        {
+            for (int x = 0; x < gameWidth; x += 2)
+            {
+                int pixelIndex = (y * gameWidth + x) * channels;
+                if (pixelIndex + 2 < state.Length)
+                {
+                    byte r = state[pixelIndex];
+                    byte g = state[pixelIndex + 1];
+                    byte b = state[pixelIndex + 2];
+                    
+                    // Only draw non-black pixels - Pong uses white (255,255,255)
+                    if (r > 128 || g > 128 || b > 128)
+                    {
+                        var pixel = new Avalonia.Controls.Shapes.Rectangle
+                        {
+                            Width = scaleX * 2,
+                            Height = scaleY * 2,
+                            Fill = new SolidColorBrush(Color.FromRgb(255, 255, 255)), // Classic Atari white
+                            [Canvas.LeftProperty] = x * scaleX,
+                            [Canvas.TopProperty] = y * scaleY
+                        };
+                        _canvas.Children.Add(pixel);
+                    }
+                }
+            }
+        }
+    }    public void RenderBreakout(byte[] state)
+    {
+        if (_canvas == null || state == null) return;
+        _canvas.Children.Clear();
+        
+        double width = _canvas.Bounds.Width;
+        double height = _canvas.Bounds.Height;
+        
+        // State is RGB pixel data: 210 height x 160 width x 3 channels
+        const int gameWidth = 160;
+        const int gameHeight = 210;
+        const int channels = 3;
+        
+        // Background - classic Atari black
+        var background = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = width,
+            Height = height,
+            Fill = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+            [Canvas.LeftProperty] = 0,
+            [Canvas.TopProperty] = 0
+        };
+        _canvas.Children.Add(background);
+        
+        // Create scaled representation
+        double scaleX = width / gameWidth;
+        double scaleY = height / gameHeight;
+        
+        // Render the actual pixel data from the game with authentic Atari colors
+        for (int y = 0; y < gameHeight; y += 2)
+        {
+            for (int x = 0; x < gameWidth; x += 2)
+            {
+                int pixelIndex = (y * gameWidth + x) * channels;
+                if (pixelIndex + 2 < state.Length)
+                {
+                    byte r = state[pixelIndex];
+                    byte g = state[pixelIndex + 1];
+                    byte b = state[pixelIndex + 2];
+                    
+                    // Draw any non-black pixels with their authentic Atari colors
+                    if (r > 10 || g > 10 || b > 10)
+                    {
+                        var pixel = new Avalonia.Controls.Shapes.Rectangle
+                        {
+                            Width = scaleX * 2,
+                            Height = scaleY * 2,
+                            Fill = new SolidColorBrush(Color.FromRgb(r, g, b)),
+                            [Canvas.LeftProperty] = x * scaleX,
+                            [Canvas.TopProperty] = y * scaleY
+                        };
+                        _canvas.Children.Add(pixel);
+                    }
+                }
+            }
+        }
+    }    public void RenderSpaceInvaders(byte[] state)
+    {
+        if (_canvas == null || state == null) return;
+        _canvas.Children.Clear();
+        
+        double width = _canvas.Bounds.Width;
+        double height = _canvas.Bounds.Height;
+        
+        // State is RGB pixel data: 210 height x 160 width x 3 channels
+        const int gameWidth = 160;
+        const int gameHeight = 210;
+        const int channels = 3;
+        
+        // Background - classic Atari black
+        var background = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = width,
+            Height = height,
+            Fill = new SolidColorBrush(Color.FromRgb(0, 0, 0)),
+            [Canvas.LeftProperty] = 0,
+            [Canvas.TopProperty] = 0
+        };
+        _canvas.Children.Add(background);
+        
+        // Create scaled representation - render every 2nd pixel for better performance
+        double scaleX = width / gameWidth;
+        double scaleY = height / gameHeight;
+        
+        // Render the actual pixel data from the game with authentic Atari colors
+        for (int y = 0; y < gameHeight; y += 2)
+        {
+            for (int x = 0; x < gameWidth; x += 2)
+            {
+                int pixelIndex = (y * gameWidth + x) * channels;
+                if (pixelIndex + 2 < state.Length)
+                {
+                    byte r = state[pixelIndex];
+                    byte g = state[pixelIndex + 1];
+                    byte b = state[pixelIndex + 2];
+                    
+                    // Draw any non-black pixels with their authentic Atari colors
+                    if (r > 10 || g > 10 || b > 10)
+                    {
+                        var pixel = new Avalonia.Controls.Shapes.Rectangle
+                        {
+                            Width = scaleX * 2,
+                            Height = scaleY * 2,
+                            Fill = new SolidColorBrush(Color.FromRgb(r, g, b)),
+                            [Canvas.LeftProperty] = x * scaleX,
+                            [Canvas.TopProperty] = y * scaleY
+                        };
+                        _canvas.Children.Add(pixel);
+                    }
+                }
+            }
+        }
     }
 }

@@ -27,13 +27,12 @@ namespace Gymnasium.UI.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject
 {
-    public string Greeting { get; } = "Welcome to Avalonia!";
-
-    public ObservableCollection<string> Environments { get; } = new()
+    public string Greeting { get; } = "Welcome to Avalonia!";    public ObservableCollection<string> Environments { get; } = new()
     {
         "CartPole-v1", "MountainCar-v0", "MountainCarContinuous-v0", "Acrobot-v1", "Pendulum-v1",
         "FrozenLake-v1", "Taxi-v3", "Blackjack-v1", "CliffWalking-v0",
-        "LunarLander-v2", "BipedalWalker-v3", "CarRacing-v2", "AtariStub-v0", "MujocoStub-v0"
+        "LunarLander-v2", "BipedalWalker-v3", "CarRacing-v2", 
+        "Pong-v4", "Breakout-v4", "SpaceInvaders-v4", "AtariStub-v0", "MujocoStub-v0"
     };
     private string? _selectedEnvironment;
     public string? SelectedEnvironment
@@ -428,13 +427,36 @@ public partial class MainWindowViewModel : ObservableObject
                             {
                                 await Dispatcher.UIThread.InvokeAsync(() => renderView10.RenderBipedalWalker(arr));
                             }
-                        }
-                        // CarRacing rendering
+                        }                        // CarRacing rendering
                         if (SelectedEnvironment == "CarRacing-v2" && EnvironmentView is Views.EnvironmentRenderView renderView11)
                         {
                             if (nextState is float[] arr)
                             {
                                 await Dispatcher.UIThread.InvokeAsync(() => renderView11.RenderCarRacing(arr));
+                            }
+                        }
+                        // Pong rendering
+                        if (SelectedEnvironment == "Pong-v4" && EnvironmentView is Views.EnvironmentRenderView renderViewPong)
+                        {
+                            if (nextState is byte[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderViewPong.RenderPong(arr));
+                            }
+                        }
+                        // Breakout rendering
+                        if (SelectedEnvironment == "Breakout-v4" && EnvironmentView is Views.EnvironmentRenderView renderViewBreakout)
+                        {
+                            if (nextState is byte[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderViewBreakout.RenderBreakout(arr));
+                            }
+                        }
+                        // SpaceInvaders rendering
+                        if (SelectedEnvironment == "SpaceInvaders-v4" && EnvironmentView is Views.EnvironmentRenderView renderViewSpaceInvaders)
+                        {
+                            if (nextState is byte[] arr)
+                            {
+                                await Dispatcher.UIThread.InvokeAsync(() => renderViewSpaceInvaders.RenderSpaceInvaders(arr));
                             }
                         }
                         // AtariStub rendering
@@ -981,9 +1003,32 @@ Success rate: {CalculateSuccessRate(_episodeSuccesses):P1}</pre>
                 break;
             case "Blackjack-v1":
                 EnvironmentInfo = "Player must get as close as possible to 21 without going over, competing against a dealer.";
-                break;
-            case "CliffWalking-v0":
+                break;            case "CliffWalking-v0":
                 EnvironmentInfo = "Agent must navigate from start to goal along a cliff edge without falling off.";
+                break;
+            case "LunarLander-v2":
+                EnvironmentInfo = "Spacecraft must land safely on a landing pad using thruster control.";
+                break;
+            case "BipedalWalker-v3":
+                EnvironmentInfo = "Humanoid robot must learn to walk forward on rough terrain.";
+                break;
+            case "CarRacing-v2":
+                EnvironmentInfo = "Racing car must complete laps around a randomly generated track.";
+                break;
+            case "Pong-v4":
+                EnvironmentInfo = "Classic Atari Pong game. Control the right paddle to hit the ball past the opponent.";
+                break;
+            case "Breakout-v4":
+                EnvironmentInfo = "Classic Atari Breakout game. Control the paddle to bounce the ball and destroy all bricks.";
+                break;
+            case "SpaceInvaders-v4":
+                EnvironmentInfo = "Classic Atari Space Invaders game. Control the cannon to shoot alien invaders.";
+                break;
+            case "AtariStub-v0":
+                EnvironmentInfo = "Placeholder for Atari game environments (development stub).";
+                break;
+            case "MujocoStub-v0":
+                EnvironmentInfo = "Placeholder for MuJoCo physics environments (development stub).";
                 break;
             default:
                 EnvironmentInfo = "Advanced environment with complex dynamics.";
