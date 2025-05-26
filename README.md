@@ -3,7 +3,11 @@
 This is a C# port of the OpenAI Gymnasium library (https://gymnasium.farama.org/index.html), targeting .NET 8+ and C# 13 preview features.
 
 ## Features
-- All classic control, toy text, Box2D (stub), Atari (stub), and MuJoCo (stub) environments fully ported
+- All classic control, toy text environments fully ported
+- **Physics-based environments with VelcroPhysics engine:**
+  - LunarLander: Real physics simulation with rocket thrust, gravity, fuel consumption
+  - BipedalWalker: Multi-body walker with realistic joint mechanics and motor torque
+  - CarRacing: Top-down car physics with steering, acceleration, braking, and collision detection
 - Space abstractions: Discrete, Box, MultiDiscrete, MultiBinary, Dict, Tuple
 - Environment registry and type-safe creation (EnvRegistry)
 - Wrappers: TimeLimit, RecordEpisodeStatistics, ObservationWrapper, ActionWrapper, RewardWrapper
@@ -14,7 +18,11 @@ This is a C# port of the OpenAI Gymnasium library (https://gymnasium.farama.org/
 - NuGet package and GitHub Actions CI/CD pipeline
 - Modern Avalonia UI for environment/agent selection, training configuration, and live visualization
 - Agent plugin system (MEF/Composition) for custom agents
-- Live graphical rendering for all environments (with stubs for Box2D/Atari/MuJoCo)
+- **Live physics-based rendering for all environments with real-time visualization:**
+  - LunarLander: Diamond lander with thrust effects, velocity vectors, landing pad
+  - BipedalWalker: Multi-body walker with hull, legs, joints, and ground contact
+  - CarRacing: Top-down car with track boundaries, steering, and velocity indicators
+  - Atari (stub), MuJoCo (stub) environments for future expansion
 - Reward, episode length, and loss charts with moving averages
 - Per-episode reward/length/loss tables
 - Best/worst episode trajectory reporting (UI and export)
@@ -23,6 +31,49 @@ This is a C# port of the OpenAI Gymnasium library (https://gymnasium.farama.org/
 - HTML and PDF report export (QuestPDF) with all charts, tables, and metrics
 - Error handling and UI for agent plugin DLL import/reload
 - All scientific metrics and visualizations available in UI and exported reports
+
+## Physics Engine Integration
+
+This port includes a real physics engine integration using **VelcroPhysics** (a .NET port of Box2D) to provide authentic physics simulation for environments that require it:
+
+### Implemented Physics Environments
+
+#### LunarLander
+- **Real physics simulation** with gravity (9.8 m/s²) and realistic rocket dynamics
+- **Body mechanics**: Diamond-shaped lander with proper mass, friction, and restitution
+- **Propulsion system**: Main engine and left/right side engines with fuel consumption
+- **Landing mechanics**: Ground collision detection with landing pad scoring
+- **State vector**: 8 elements including position, velocity, angle, angular velocity, and leg contact sensors
+- **Reward system**: Based on distance to landing pad, fuel efficiency, and successful landing
+
+#### BipedalWalker
+- **Multi-body simulation** with hull (torso), upper legs, lower legs, and physics joints
+- **Motor torque system**: Realistic joint motors for walking mechanics
+- **Balance dynamics**: Hull stability and forward movement simulation
+- **Contact sensors**: Ground contact detection for legs
+- **State vector**: 24 elements including joint angles, velocities, and contact information
+- **Reward system**: Forward progress with penalties for falling or excessive energy use
+
+#### CarRacing
+- **Top-down car physics** with realistic steering, acceleration, and braking
+- **Vehicle dynamics**: Proper mass, friction, and momentum simulation
+- **Track boundaries**: Collision detection with track walls using EdgeShape
+- **Control mechanics**: Steering wheel angle, gas pedal, and brake system
+- **State vector**: 8 elements including position, velocity, angle, and wheel angle
+- **Reward system**: Speed-based rewards with penalties for leaving the track
+
+### Physics Engine Details
+- **Engine**: VelcroPhysics 0.2.2 (Microsoft.Xna.Framework-based Box2D port)
+- **Simulation rate**: 50 Hz (20ms timesteps) for stable physics
+- **Coordinate system**: World units with proper scaling for visualization
+- **Performance**: Optimized for real-time simulation and rendering
+
+### Visualization
+The Avalonia UI provides real-time physics visualization with:
+- **Real-time body rendering** showing actual physics object positions and rotations
+- **Visual feedback** for forces, velocities, and contact points
+- **Interactive controls** for stepping through physics simulation
+- **Debug information** displaying physics state values
 
 ## Getting Started
 1. Build the solution:

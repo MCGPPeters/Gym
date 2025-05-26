@@ -1,3 +1,0 @@
-# __init__.py for the Gymnasium port
-
-# ...existing code...

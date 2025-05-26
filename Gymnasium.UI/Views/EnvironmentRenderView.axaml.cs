@@ -277,49 +277,427 @@ public partial class EnvironmentRenderView : UserControl
             [Canvas.TopProperty] = 40.0
         };
         _canvas.Children.Add(text);
-    }
-
-    public void RenderLunarLander(float[] state)
+    }    public void RenderLunarLander(float[] state)
     {
-        if (_canvas == null) return;
+        if (_canvas == null || state == null || state.Length < 8) return;
         _canvas.Children.Clear();
-        var text = new Avalonia.Controls.TextBlock
+        
+        double width = _canvas.Bounds.Width;
+        double height = _canvas.Bounds.Height;
+        
+        // Extract state: [norm_x, norm_y, vel_x, vel_y, angle, angular_vel, leg1_contact, leg2_contact]
+        float normX = state[0]; // Normalized X position [-1, 1]
+        float normY = state[1]; // Normalized Y position [-1, 1]
+        float angle = state[4]; // Lander angle
+        bool leg1Contact = state[6] > 0.5f;
+        bool leg2Contact = state[7] > 0.5f;
+        
+        // Convert to canvas coordinates
+        double landerX = width / 2 + normX * width / 3; // Center with some margin
+        double landerY = height * 0.8 - normY * height / 3; // Flip Y axis, ground at bottom
+        
+        // Draw landing pad
+        var landingPad = new Avalonia.Controls.Shapes.Rectangle
         {
-            Text = "LunarLander (stub):\nNo physics visualization",
-            Foreground = Brushes.LightGray,
-            FontSize = 28,
-            [Canvas.LeftProperty] = 20.0,
-            [Canvas.TopProperty] = 40.0
+            Width = 80, Height = 10,
+            Fill = Brushes.Green,
+            [Canvas.LeftProperty] = width / 2 - 40,
+            [Canvas.TopProperty] = height * 0.8
         };
-        _canvas.Children.Add(text);
-    }
-    public void RenderBipedalWalker(float[] state)
+        _canvas.Children.Add(landingPad);
+        
+        // Draw ground
+        var ground = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(0, height * 0.8 + 5),
+            EndPoint = new Avalonia.Point(width, height * 0.8 + 5),
+            Stroke = Brushes.Brown,
+            StrokeThickness = 5
+        };
+        _canvas.Children.Add(ground);
+        
+        // Draw lander body (diamond shape)
+        var lander = new Avalonia.Controls.Shapes.Polygon
+        {
+            Fill = Brushes.Silver,
+            Stroke = Brushes.DarkGray,
+            StrokeThickness = 2
+        };
+        
+        var points = new Avalonia.Collections.AvaloniaList<Avalonia.Point>();
+        double landerSize = 20;
+        double cosA = Math.Cos(angle);
+        double sinA = Math.Sin(angle);
+        
+        // Diamond shape rotated by angle
+        points.Add(new Avalonia.Point(landerX + landerSize * sinA, landerY - landerSize * cosA)); // Top
+        points.Add(new Avalonia.Point(landerX + landerSize * cosA, landerY + landerSize * sinA)); // Right
+        points.Add(new Avalonia.Point(landerX - landerSize * sinA, landerY + landerSize * cosA)); // Bottom
+        points.Add(new Avalonia.Point(landerX - landerSize * cosA, landerY - landerSize * sinA)); // Left
+        
+        lander.Points = points;
+        _canvas.Children.Add(lander);
+        
+        // Draw legs
+        double legLength = 15;
+        var leftLeg = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(landerX - 10, landerY + 5),
+            EndPoint = new Avalonia.Point(landerX - 15, landerY + 5 + legLength),
+            Stroke = leg1Contact ? Brushes.Red : Brushes.Gray,
+            StrokeThickness = 3
+        };
+        
+        var rightLeg = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(landerX + 10, landerY + 5),
+            EndPoint = new Avalonia.Point(landerX + 15, landerY + 5 + legLength),
+            Stroke = leg2Contact ? Brushes.Red : Brushes.Gray,
+            StrokeThickness = 3
+        };
+        
+        _canvas.Children.Add(leftLeg);
+        _canvas.Children.Add(rightLeg);
+        
+        // Draw velocity vector
+        double velScale = 50;
+        if (state.Length >= 4)
+        {
+            var velVector = new Avalonia.Controls.Shapes.Line
+            {
+                StartPoint = new Avalonia.Point(landerX, landerY),
+                EndPoint = new Avalonia.Point(landerX + state[2] * velScale, landerY - state[3] * velScale),
+                Stroke = Brushes.Yellow,
+                StrokeThickness = 2
+            };
+            _canvas.Children.Add(velVector);
+        }
+        
+        // Draw state info
+        var stateText = new Avalonia.Controls.TextBlock
+        {
+            Text = $"Pos: ({normX:F2}, {normY:F2})\nAngle: {angle:F2}\nContact: L{(leg1Contact ? "✓" : "✗")} R{(leg2Contact ? "✓" : "✗")}",
+            Foreground = Brushes.White,
+            FontSize = 12,
+            [Canvas.LeftProperty] = 10.0,
+            [Canvas.TopProperty] = 10.0
+        };
+        _canvas.Children.Add(stateText);
+    }    public void RenderBipedalWalker(float[] state)
     {
-        if (_canvas == null) return;
+        if (_canvas == null || state == null || state.Length < 24) return;
         _canvas.Children.Clear();
-        var text = new Avalonia.Controls.TextBlock
+        
+        double width = _canvas.Bounds.Width;
+        double height = _canvas.Bounds.Height;
+        double groundY = height * 0.8;
+        
+        // Extract key state elements: hull position and angles
+        float hullAngle = state[0];
+        float hullVelX = state[2];
+        float hullPosX = state[4];
+        float hullPosY = state[5];
+        float leg1Angle = state[6];
+        float leg2Angle = state[10];
+        float lowerLeg1Angle = state[14];
+        float lowerLeg2Angle = state.Length > 18 ? state[18] : 0;
+        
+        // Convert to canvas coordinates
+        double centerX = width / 2 + hullPosX * 50; // Scale and center
+        double centerY = groundY - hullPosY * 50; // Flip Y, relative to ground
+        
+        // Draw ground
+        var ground = new Avalonia.Controls.Shapes.Line
         {
-            Text = "BipedalWalker (stub):\nNo physics visualization",
-            Foreground = Brushes.LightGray,
-            FontSize = 28,
-            [Canvas.LeftProperty] = 20.0,
-            [Canvas.TopProperty] = 40.0
+            StartPoint = new Avalonia.Point(0, groundY),
+            EndPoint = new Avalonia.Point(width, groundY),
+            Stroke = Brushes.Brown,
+            StrokeThickness = 5
         };
-        _canvas.Children.Add(text);
-    }
-    public void RenderCarRacing(float[] state)
+        _canvas.Children.Add(ground);
+        
+        // Draw hull (torso)
+        var hull = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = 30, Height = 20,
+            Fill = Brushes.Blue,
+            [Canvas.LeftProperty] = centerX - 15,
+            [Canvas.TopProperty] = centerY - 10
+        };
+        
+        // Rotate hull based on angle (simplified)
+        hull.RenderTransform = new Avalonia.Media.RotateTransform(hullAngle * 180 / Math.PI, 15, 10);
+        _canvas.Children.Add(hull);
+        
+        // Draw legs
+        double legLength = 40;
+        double lowerLegLength = 35;
+        
+        // Left leg (leg1)
+        double leg1X = centerX - 10;
+        double leg1Y = centerY + 10;
+        double leg1EndX = leg1X + legLength * Math.Sin(leg1Angle);
+        double leg1EndY = leg1Y + legLength * Math.Cos(leg1Angle);
+        
+        var leftUpperLeg = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(leg1X, leg1Y),
+            EndPoint = new Avalonia.Point(leg1EndX, leg1EndY),
+            Stroke = Brushes.DarkBlue,
+            StrokeThickness = 4
+        };
+        _canvas.Children.Add(leftUpperLeg);
+        
+        // Left lower leg
+        double lowerLeg1EndX = leg1EndX + lowerLegLength * Math.Sin(leg1Angle + lowerLeg1Angle);
+        double lowerLeg1EndY = leg1EndY + lowerLegLength * Math.Cos(leg1Angle + lowerLeg1Angle);
+        
+        var leftLowerLeg = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(leg1EndX, leg1EndY),
+            EndPoint = new Avalonia.Point(lowerLeg1EndX, lowerLeg1EndY),
+            Stroke = Brushes.CadetBlue,
+            StrokeThickness = 3
+        };
+        _canvas.Children.Add(leftLowerLeg);
+        
+        // Right leg (leg2)
+        double leg2X = centerX + 10;
+        double leg2Y = centerY + 10;
+        double leg2EndX = leg2X + legLength * Math.Sin(leg2Angle);
+        double leg2EndY = leg2Y + legLength * Math.Cos(leg2Angle);
+        
+        var rightUpperLeg = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(leg2X, leg2Y),
+            EndPoint = new Avalonia.Point(leg2EndX, leg2EndY),
+            Stroke = Brushes.DarkBlue,
+            StrokeThickness = 4
+        };
+        _canvas.Children.Add(rightUpperLeg);
+        
+        // Right lower leg
+        double lowerLeg2EndX = leg2EndX + lowerLegLength * Math.Sin(leg2Angle + lowerLeg2Angle);
+        double lowerLeg2EndY = leg2EndY + lowerLegLength * Math.Cos(leg2Angle + lowerLeg2Angle);
+        
+        var rightLowerLeg = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(leg2EndX, leg2EndY),
+            EndPoint = new Avalonia.Point(lowerLeg2EndX, lowerLeg2EndY),
+            Stroke = Brushes.CadetBlue,
+            StrokeThickness = 3
+        };
+        _canvas.Children.Add(rightLowerLeg);
+        
+        // Draw joints
+        var hipLeft = new Avalonia.Controls.Shapes.Ellipse
+        {
+            Width = 8, Height = 8, Fill = Brushes.Red,
+            [Canvas.LeftProperty] = leg1X - 4,
+            [Canvas.TopProperty] = leg1Y - 4
+        };
+        
+        var kneeLeft = new Avalonia.Controls.Shapes.Ellipse
+        {
+            Width = 6, Height = 6, Fill = Brushes.Orange,
+            [Canvas.LeftProperty] = leg1EndX - 3,
+            [Canvas.TopProperty] = leg1EndY - 3
+        };
+        
+        var hipRight = new Avalonia.Controls.Shapes.Ellipse
+        {
+            Width = 8, Height = 8, Fill = Brushes.Red,
+            [Canvas.LeftProperty] = leg2X - 4,
+            [Canvas.TopProperty] = leg2Y - 4
+        };
+        
+        var kneeRight = new Avalonia.Controls.Shapes.Ellipse
+        {
+            Width = 6, Height = 6, Fill = Brushes.Orange,
+            [Canvas.LeftProperty] = leg2EndX - 3,
+            [Canvas.TopProperty] = leg2EndY - 3
+        };
+        
+        _canvas.Children.Add(hipLeft);
+        _canvas.Children.Add(kneeLeft);
+        _canvas.Children.Add(hipRight);
+        _canvas.Children.Add(kneeRight);
+        
+        // Draw feet
+        var footLeft = new Avalonia.Controls.Shapes.Ellipse
+        {
+            Width = 8, Height = 8, Fill = Brushes.Black,
+            [Canvas.LeftProperty] = lowerLeg1EndX - 4,
+            [Canvas.TopProperty] = lowerLeg1EndY - 4
+        };
+        
+        var footRight = new Avalonia.Controls.Shapes.Ellipse
+        {
+            Width = 8, Height = 8, Fill = Brushes.Black,
+            [Canvas.LeftProperty] = lowerLeg2EndX - 4,
+            [Canvas.TopProperty] = lowerLeg2EndY - 4
+        };
+        
+        _canvas.Children.Add(footLeft);
+        _canvas.Children.Add(footRight);
+        
+        // Draw velocity vector
+        var velVector = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(centerX, centerY),
+            EndPoint = new Avalonia.Point(centerX + hullVelX * 20, centerY),
+            Stroke = Brushes.Yellow,
+            StrokeThickness = 3
+        };
+        _canvas.Children.Add(velVector);
+        
+        // Draw state info
+        var stateText = new Avalonia.Controls.TextBlock
+        {
+            Text = $"Hull: ({hullPosX:F2}, {hullPosY:F2})\nAngle: {hullAngle:F2}\nVel X: {hullVelX:F2}",
+            Foreground = Brushes.White,
+            FontSize = 12,
+            [Canvas.LeftProperty] = 10.0,
+            [Canvas.TopProperty] = 10.0
+        };
+        _canvas.Children.Add(stateText);
+    }    public void RenderCarRacing(float[] state)
     {
-        if (_canvas == null) return;
+        if (_canvas == null || state == null || state.Length < 8) return;
         _canvas.Children.Clear();
-        var text = new Avalonia.Controls.TextBlock
+        
+        double width = _canvas.Bounds.Width;
+        double height = _canvas.Bounds.Height;
+        
+        // Extract state: [norm_x, norm_y, angle, vel_x, vel_y, angular_vel, wheel_angle, speed]
+        float normX = state[0]; // Normalized X position [-1, 1]
+        float normY = state[1]; // Normalized Y position [-1, 1]
+        float angle = state[2] * (float)Math.PI; // Convert back from normalized angle
+        float speed = state[7]; // Normalized speed
+        float wheelAngle = state[6]; // Normalized wheel angle
+        
+        // Convert to canvas coordinates (top-down view)
+        double carX = width / 2 + normX * width / 3;
+        double carY = height / 2 + normY * height / 3;
+        
+        // Draw track boundaries
+        var trackOuter = new Avalonia.Controls.Shapes.Rectangle
         {
-            Text = "CarRacing (stub):\nNo physics visualization",
-            Foreground = Brushes.LightGray,
-            FontSize = 28,
-            [Canvas.LeftProperty] = 20.0,
-            [Canvas.TopProperty] = 40.0
+            Width = width * 0.9, Height = height * 0.9,
+            Stroke = Brushes.White,
+            StrokeThickness = 3,
+            Fill = Brushes.Transparent,
+            [Canvas.LeftProperty] = width * 0.05,
+            [Canvas.TopProperty] = height * 0.05
         };
-        _canvas.Children.Add(text);
+        _canvas.Children.Add(trackOuter);
+        
+        var trackInner = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = width * 0.6, Height = height * 0.6,
+            Stroke = Brushes.White,
+            StrokeThickness = 3,
+            Fill = Brushes.Transparent,
+            [Canvas.LeftProperty] = width * 0.2,
+            [Canvas.TopProperty] = height * 0.2
+        };
+        _canvas.Children.Add(trackInner);
+        
+        // Draw car body
+        var car = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = 20, Height = 12,
+            Fill = Brushes.Red,
+            Stroke = Brushes.DarkRed,
+            StrokeThickness = 1,
+            [Canvas.LeftProperty] = carX - 10,
+            [Canvas.TopProperty] = carY - 6
+        };
+        
+        // Rotate car based on angle
+        car.RenderTransform = new Avalonia.Media.RotateTransform(angle * 180 / Math.PI, 10, 6);
+        _canvas.Children.Add(car);
+        
+        // Draw wheels (simple lines)
+        double cosA = Math.Cos(angle);
+        double sinA = Math.Sin(angle);
+        
+        // Front wheels (with steering)
+        double frontWheelAngle = angle + wheelAngle * 0.5; // Limit steering visualization
+        double frontCosA = Math.Cos(frontWheelAngle);
+        double frontSinA = Math.Sin(frontWheelAngle);
+        
+        var frontLeftWheel = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(carX - 3 * cosA + 8 * sinA, carY - 3 * sinA - 8 * cosA),
+            EndPoint = new Avalonia.Point(carX - 3 * cosA + 8 * sinA + 6 * frontCosA, carY - 3 * sinA - 8 * cosA + 6 * frontSinA),
+            Stroke = Brushes.Black,
+            StrokeThickness = 2
+        };
+        
+        var frontRightWheel = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(carX + 3 * cosA + 8 * sinA, carY + 3 * sinA - 8 * cosA),
+            EndPoint = new Avalonia.Point(carX + 3 * cosA + 8 * sinA + 6 * frontCosA, carY + 3 * sinA - 8 * cosA + 6 * frontSinA),
+            Stroke = Brushes.Black,
+            StrokeThickness = 2
+        };
+        
+        // Rear wheels (straight)
+        var rearLeftWheel = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(carX - 3 * cosA - 8 * sinA, carY - 3 * sinA + 8 * cosA),
+            EndPoint = new Avalonia.Point(carX - 3 * cosA - 8 * sinA + 6 * cosA, carY - 3 * sinA + 8 * cosA + 6 * sinA),
+            Stroke = Brushes.Black,
+            StrokeThickness = 2
+        };
+        
+        var rearRightWheel = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(carX + 3 * cosA - 8 * sinA, carY + 3 * sinA + 8 * cosA),
+            EndPoint = new Avalonia.Point(carX + 3 * cosA - 8 * sinA + 6 * cosA, carY + 3 * sinA + 8 * cosA + 6 * sinA),
+            Stroke = Brushes.Black,
+            StrokeThickness = 2
+        };
+        
+        _canvas.Children.Add(frontLeftWheel);
+        _canvas.Children.Add(frontRightWheel);
+        _canvas.Children.Add(rearLeftWheel);
+        _canvas.Children.Add(rearRightWheel);
+        
+        // Draw velocity vector
+        if (Math.Abs(speed) > 0.01f)
+        {
+            var velVector = new Avalonia.Controls.Shapes.Line
+            {
+                StartPoint = new Avalonia.Point(carX, carY),
+                EndPoint = new Avalonia.Point(carX + state[3] * 100, carY + state[4] * 100),
+                Stroke = Brushes.Yellow,
+                StrokeThickness = 2
+            };
+            _canvas.Children.Add(velVector);
+        }
+        
+        // Draw direction indicator
+        var directionArrow = new Avalonia.Controls.Shapes.Line
+        {
+            StartPoint = new Avalonia.Point(carX, carY),
+            EndPoint = new Avalonia.Point(carX + 15 * cosA, carY + 15 * sinA),
+            Stroke = Brushes.Lime,
+            StrokeThickness = 3
+        };
+        _canvas.Children.Add(directionArrow);
+        
+        // Draw state info
+        var stateText = new Avalonia.Controls.TextBlock
+        {
+            Text = $"Pos: ({normX:F2}, {normY:F2})\nAngle: {angle * 180 / Math.PI:F1}°\nSpeed: {speed:F2}\nSteering: {wheelAngle:F2}",
+            Foreground = Brushes.White,
+            FontSize = 12,
+            [Canvas.LeftProperty] = 10.0,
+            [Canvas.TopProperty] = 10.0
+        };
+        _canvas.Children.Add(stateText);
     }
     public void RenderAtariStub(int[] state)
     {
