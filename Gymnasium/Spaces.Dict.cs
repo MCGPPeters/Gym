@@ -9,6 +9,7 @@ namespace Gymnasium.Spaces;
 public class Dict : Space<Dictionary<string, object>>
 {
     public Dictionary<string, Space<object>> Spaces { get; }
+    public override int[] Shape => new int[] { Spaces.Count }; // Dictionary shape is number of keys
     private readonly Random _rng = new();
 
     public Dict(Dictionary<string, Space<object>> spaces)

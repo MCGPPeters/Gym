@@ -9,6 +9,7 @@ namespace Gymnasium.Spaces;
 public class MultiDiscrete : Space<int[]>
 {
     public int[] Nvec { get; }
+    public override int[] Shape => new int[] { Nvec.Length };
     private readonly Random _rng = new();
 
     public MultiDiscrete(int[] nvec)

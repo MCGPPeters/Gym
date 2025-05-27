@@ -9,6 +9,7 @@ namespace Gymnasium.Spaces;
 public class Tuple : Space<object[]>
 {
     public List<Space<object>> Spaces { get; }
+    public override int[] Shape => new int[] { Spaces.Count }; // Tuple shape is number of elements
     private readonly Random _rng = new();
 
     public Tuple(List<Space<object>> spaces)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Gymnasium.Spaces;
 
 namespace Gymnasium;
 
@@ -9,6 +10,9 @@ namespace Gymnasium;
 public class DummyEnv : Env<int, int>
 {
     private int _state;
+
+    public Discrete ActionSpace { get; } = new Discrete(3); // Actions: 0, 1, 2
+    public Discrete ObservationSpace { get; } = new Discrete(20); // States: 0-19
 
     public override int Reset()
     {

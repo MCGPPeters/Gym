@@ -10,6 +10,7 @@ public class Box : Space<float[]>
     public float[] Low { get; }
     public float[] High { get; }
     public int Dimension { get; }
+    public override int[] Shape => new int[] { Dimension };
     private readonly Random _rng = new();
 
     public Box(float[] low, float[] high)

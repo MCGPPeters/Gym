@@ -9,6 +9,7 @@ namespace Gymnasium.Spaces;
 public class MultiBinary : Space<bool[]>
 {
     public int N { get; }
+    public override int[] Shape => new int[] { N };
     private readonly Random _rng = new();
 
     public MultiBinary(int n)

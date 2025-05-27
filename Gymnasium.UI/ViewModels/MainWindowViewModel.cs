@@ -479,8 +479,19 @@ public partial class MainWindowViewModel : ObservableObject
                             Step = step + 1,
                             State = state,
                             Action = action,
-                            Reward = reward
-                        });
+                            Reward = reward                        });
+                        
+                        // CRITICAL: Call agent.Learn() so the agent actually learns from the experience
+                        try
+                        {
+                            agent.Learn(state, action, reward, nextState, done);
+                            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Agent.Learn() called successfully\n");
+                        }
+                        catch (Exception learnEx)
+                        {
+                            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: Agent.Learn() ERROR: {learnEx.Message}\n{learnEx.StackTrace}\n");
+                        }
+                        
                         steps++;
                         if (done)
                         {
@@ -586,17 +597,10 @@ public partial class MainWindowViewModel : ObservableObject
             }
         }
         catch (Exception ex)
-        {
-            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: CRITICAL ERROR in StartTraining: {ex.Message}\n{ex.StackTrace}\n");
+        {            System.IO.File.AppendAllText("training_debug.log", $"{DateTime.Now}: CRITICAL ERROR in StartTraining: {ex.Message}\n{ex.StackTrace}\n");
             StatusMessage = $"Critical error: {ex.Message}";
             SetIsTraining(false);
         }
-    }
-
-    public async Task CallStartTraining()
-    {
-        System.IO.File.AppendAllText("button_debug.log", $"{DateTime.Now}: CallStartTraining method called\n");
-        await StartTraining();
     }
 
     private async Task AddPluginDllAsync()

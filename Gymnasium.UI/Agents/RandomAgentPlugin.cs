@@ -19,4 +19,5 @@ public class RandomAgent
     private readonly Random _rng = new();
     public RandomAgent(object env) { _env = env; }
     public object Act(object state) => _env.ActionSpace.Sample();
+    public void Learn(object state, object action, double reward, object nextState, bool done) { /* Random agent doesn't learn */ }
 }

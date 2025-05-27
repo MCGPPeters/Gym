@@ -149,12 +149,11 @@
                             
                             <TextBlock Text="Steps per Episode:" Margin="0,8,0,4"/>
                             <NumericUpDown Minimum="1" Maximum="10000" Value="{Binding StepsPerEpisode, Mode=TwoWay}" 
-                                          FormatString="0" Watermark="Max steps per episode"/>
-                            <!-- Make button highly visible with direct styling -->                            <Grid Margin="0,16,0,0">
+                                          FormatString="0" Watermark="Max steps per episode"/>                            <!-- Make button highly visible with direct styling -->                            <Grid Margin="0,16,0,0">
                                 <Border Background="#003399" CornerRadius="4" Margin="0">
                                     <Border Background="#0044CC" CornerRadius="4" Margin="0,0,0,2">
-                                        <Button Classes="primary" Content="START TRAINING" Click="StartTrainingButton_Click"
-                                                IsEnabled="True" HorizontalAlignment="Stretch"
+                                        <Button Classes="primary" Content="START TRAINING" Command="{Binding StartTrainingCommand}"
+                                                HorizontalAlignment="Stretch"
                                                 ToolTip.Tip="Start the training process (F5)" Margin="0"/>
                                     </Border>
                                 </Border>

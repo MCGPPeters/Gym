@@ -7,6 +7,7 @@ namespace Gymnasium.Spaces;
 /// </summary>
 public abstract class Space<T>
 {
+    public abstract int[] Shape { get; }
     public abstract T Sample();
     public abstract bool Contains(T x);
 }
