@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -15,6 +16,10 @@ public class AtariStub : Env<int[], int>
     private int _steps;
     public override int[] Reset() { _steps = 0; return _state; }
     public override (int[] state, double reward, bool done, IDictionary<string, object> info) Step(int action) { _steps++; return (_state, 0.0, _steps >= 1000, new Dictionary<string, object>()); }
-    public override void Render(string mode = "human") => Console.WriteLine("AtariStub: [image data]");
+    public override void Render(string mode = "human")
+    {
+        ConsoleRenderer.RenderHeader("AtariStub");
+        Console.WriteLine("[image data]");
+    }
     public override void Close() { }
 }

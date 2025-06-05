@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Gymnasium.Spaces;
+using Gymnasium;
 using VelcroPhysics.Dynamics;
 using VelcroPhysics.Collision.Shapes;
 using VelcroPhysics.Factories;
@@ -177,7 +178,11 @@ public class CarRacing : Env<float[], float[]>
         }
     }
 
-    public override void Render(string mode = "human") => Console.WriteLine($"State: [{string.Join(", ", _state)}]");
+    public override void Render(string mode = "human")
+    {
+        ConsoleRenderer.RenderHeader("CarRacing");
+        Console.WriteLine($"State: [{string.Join(", ", _state)}]");
+    }
     
     public override void Close() 
     {

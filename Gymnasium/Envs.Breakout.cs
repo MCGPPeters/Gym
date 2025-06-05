@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -347,7 +348,8 @@ public class Breakout : Env<byte[], int>
     {
         if (mode == "human")
         {
-            Console.WriteLine($"Breakout - Score: {_score}, Lives: {_lives}");
+            ConsoleRenderer.RenderHeader("Breakout");
+            Console.WriteLine($"Score: {_score} Lives: {_lives}");
             Console.WriteLine($"Ball: ({_ballX:F1}, {_ballY:F1}) Velocity: ({_ballVelX:F1}, {_ballVelY:F1})");
             Console.WriteLine($"Bricks remaining: {CountRemainingBricks()}");
         }

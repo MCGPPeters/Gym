@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Gymnasium.Spaces;
+using Gymnasium;
 using VelcroPhysics.Dynamics;
 using VelcroPhysics.Collision.Shapes;
 using VelcroPhysics.Factories;
@@ -209,7 +210,13 @@ public class LunarLander : Env<float[], int>
         }
     }
 
-    public override void Render(string mode = "human") => Console.WriteLine($"State: [{string.Join(", ", _state)}]");    public override void Close() 
+    public override void Render(string mode = "human")
+    {
+        ConsoleRenderer.RenderHeader("LunarLander");
+        Console.WriteLine($"State: [{string.Join(", ", _state)}]");
+    }
+
+    public override void Close()
     {
         // VelcroPhysics doesn't need explicit disposal
         _world = null;

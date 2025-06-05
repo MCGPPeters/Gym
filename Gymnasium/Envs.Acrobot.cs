@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -92,6 +93,7 @@ public class Acrobot : Env<float[], int>
 
     public override void Render(string mode = "human")
     {
+        ConsoleRenderer.RenderHeader("Acrobot");
         Console.WriteLine($"State: [{string.Join(", ", _state)}]");
     }
 

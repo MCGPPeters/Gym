@@ -195,14 +195,29 @@ public partial class EnvironmentRenderView : UserControl
             int idx = r * ncol + c;
             var rect = new Avalonia.Controls.Shapes.Rectangle
             {
-                Width = cellW - 2, Height = cellH - 2,
+                Width = cellW - 2,
+                Height = cellH - 2,
                 [Canvas.LeftProperty] = c * cellW + 1,
                 [Canvas.TopProperty] = r * cellH + 1,
-                Fill = (holes != null && holes.Contains(idx)) ? Brushes.DarkBlue : Brushes.LightBlue
+                Fill = (holes != null && holes.Contains(idx)) ? Brushes.DarkBlue : Brushes.LightBlue,
+                Stroke = Brushes.Black,
+                StrokeThickness = 1
             };
             if (goal == idx) rect.Fill = Brushes.Gold;
-            if (state == idx) rect.Fill = Brushes.Red;
             _canvas.Children.Add(rect);
+
+            if (state == idx)
+            {
+                var agent = new Avalonia.Controls.Shapes.Ellipse
+                {
+                    Width = cellW * 0.6,
+                    Height = cellH * 0.6,
+                    Fill = Brushes.Red,
+                    [Canvas.LeftProperty] = c * cellW + (cellW - cellW * 0.6) / 2,
+                    [Canvas.TopProperty] = r * cellH + (cellH - cellH * 0.6) / 2
+                };
+                _canvas.Children.Add(agent);
+            }
         }
     }
 
@@ -220,19 +235,63 @@ public partial class EnvironmentRenderView : UserControl
         {
             var rect = new Avalonia.Controls.Shapes.Rectangle
             {
-                Width = cellW - 2, Height = cellH - 2,
+                Width = cellW - 2,
+                Height = cellH - 2,
                 [Canvas.LeftProperty] = c * cellW + 1,
                 [Canvas.TopProperty] = r * cellH + 1,
-                Fill = Brushes.LightYellow
+                Fill = Brushes.LightYellow,
+                Stroke = Brushes.Black,
+                StrokeThickness = 1
             };
             _canvas.Children.Add(rect);
         }
-        // Taxi position (approximate)
-        int taxiRow = (state / 25) / ncol;
-        int taxiCol = (state / 25) % ncol;
-        var taxi = new Avalonia.Controls.Shapes.Ellipse
+
+        // Special pickup/dropoff locations
+        var locs = new (int row, int col)[] { (0,0), (0,4), (4,0), (4,3) };
+        var colors = new IBrush[] { Brushes.Red, Brushes.Green, Brushes.Yellow, Brushes.Blue };
+        for (int i = 0; i < locs.Length; i++)
         {
-            Width = cellW * 0.7, Height = cellH * 0.7, Fill = Brushes.Yellow,
+            var (lr, lc) = locs[i];
+            var mark = new Avalonia.Controls.Shapes.Rectangle
+            {
+                Width = cellW * 0.5,
+                Height = cellH * 0.5,
+                Fill = colors[i],
+                [Canvas.LeftProperty] = lc * cellW + cellW * 0.25,
+                [Canvas.TopProperty] = lr * cellH + cellH * 0.25
+            };
+            _canvas.Children.Add(mark);
+        }
+
+        // Decode state for taxi, passenger, destination
+        int destIdx = state % 4;
+        state /= 4;
+        int passIdx = state % 5;
+        state /= 5;
+        int taxiCol = state % 5;
+        int taxiRow = state / 5;
+
+        // Draw passenger if waiting
+        if (passIdx < 4)
+        {
+            var (pr, pc) = locs[passIdx];
+            var passenger = new Avalonia.Controls.Shapes.Ellipse
+            {
+                Width = cellW * 0.35,
+                Height = cellH * 0.35,
+                Fill = Brushes.Magenta,
+                [Canvas.LeftProperty] = pc * cellW + cellW * 0.325,
+                [Canvas.TopProperty] = pr * cellH + cellH * 0.325
+            };
+            _canvas.Children.Add(passenger);
+        }
+
+        // Draw taxi
+        var taxi = new Avalonia.Controls.Shapes.Rectangle
+        {
+            Width = cellW * 0.7,
+            Height = cellH * 0.7,
+            Fill = Brushes.Orange,
             [Canvas.LeftProperty] = taxiCol * cellW + cellW * 0.15,
             [Canvas.TopProperty] = taxiRow * cellH + cellH * 0.15
         };
@@ -253,14 +312,29 @@ public partial class EnvironmentRenderView : UserControl
             int idx = r * ncol + c;
             var rect = new Avalonia.Controls.Shapes.Rectangle
             {
-                Width = cellW - 2, Height = cellH - 2,
+                Width = cellW - 2,
+                Height = cellH - 2,
                 [Canvas.LeftProperty] = c * cellW + 1,
                 [Canvas.TopProperty] = r * cellH + 1,
-                Fill = (cliff != null && cliff.Contains(idx)) ? Brushes.Black : Brushes.LightGreen
+                Fill = (cliff != null && cliff.Contains(idx)) ? Brushes.Black : Brushes.LightGreen,
+                Stroke = Brushes.Black,
+                StrokeThickness = 1
             };
             if (goal == idx) rect.Fill = Brushes.Gold;
-            if (state == idx) rect.Fill = Brushes.Red;
             _canvas.Children.Add(rect);
+
+            if (state == idx)
+            {
+                var agent = new Avalonia.Controls.Shapes.Ellipse
+                {
+                    Width = cellW * 0.6,
+                    Height = cellH * 0.6,
+                    Fill = Brushes.Red,
+                    [Canvas.LeftProperty] = c * cellW + (cellW - cellW * 0.6) / 2,
+                    [Canvas.TopProperty] = r * cellH + (cellH - cellH * 0.6) / 2
+                };
+                _canvas.Children.Add(agent);
+            }
         }
     }
 

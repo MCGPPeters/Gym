@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -61,7 +62,8 @@ public class Pendulum : Env<float[], float>
 
     public override void Render(string mode = "human")
     {
-        Console.WriteLine($"State: [{string.Join(", ", _state)}]");
+        ConsoleRenderer.RenderHeader("Pendulum");
+        Console.WriteLine($"Angle: {_state[0]:F2} AngularVel: {_state[1]:F2}");
     }
 
     public override void Close() { }

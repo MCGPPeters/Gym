@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -50,7 +51,16 @@ public class MountainCarContinuous : Env<(float, float), float>
 
     public override void Render(string mode = "human")
     {
-        Console.WriteLine($"State: {_state}");
+        ConsoleRenderer.RenderHeader("MountainCarContinuous");
+        var (pos, vel) = _state;
+        int carPos = (int)Math.Round((pos + 1.2) / 1.8 * 20);
+        carPos = Math.Clamp(carPos, 0, 20);
+        string track = new string('-', 21);
+        string line = track.Substring(0, carPos) + 'C';
+        if (carPos + 1 < track.Length)
+            line += track.Substring(carPos + 1);
+        Console.WriteLine(line);
+        Console.WriteLine($"Vel: {vel:F3}");
     }
 
     public override void Close() { }

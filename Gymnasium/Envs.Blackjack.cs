@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -41,7 +42,8 @@ public class Blackjack : Env<(int, int, bool), int>
 
     public override void Render(string mode = "human")
     {
-        Console.WriteLine($"State: {_state}");
+        ConsoleRenderer.RenderHeader("Blackjack");
+        Console.WriteLine($"Player: {_playerSum} Dealer: {_dealerCard} UsableAce: {_usableAce}");
     }
 
     public override void Close() { }

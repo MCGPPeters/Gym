@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -528,7 +529,8 @@ public class SpaceInvaders : Env<byte[], int>
     {
         if (mode == "human")
         {
-            Console.WriteLine($"Space Invaders - Score: {_score}, Lives: {_lives}");
+            ConsoleRenderer.RenderHeader("SpaceInvaders");
+            Console.WriteLine($"Score: {_score} Lives: {_lives}");
             Console.WriteLine($"Player: ({_playerX:F1}) Aliens: {CountRemainingAliens()}");
             Console.WriteLine($"Bullets: Player={_playerBullets.Count}, Alien={_alienBullets.Count}");
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -76,7 +77,13 @@ public class CartPole : Env<(float, float, float, float), int>
 
     public override void Render(string mode = "human")
     {
-        Console.WriteLine($"State: {_state}");
+        ConsoleRenderer.RenderHeader("CartPole");
+        var (x, xDot, theta, thetaDot) = _state;
+        int cartPos = (int)Math.Round((x + 2.4) / 4.8 * 20);
+        cartPos = Math.Clamp(cartPos, 0, 20);
+        char poleChar = theta < 0 ? '/' : '\\';
+        string line = new string(' ', cartPos) + '|' + poleChar;
+        Console.WriteLine(line);
     }
 
     public override void Close() { }
