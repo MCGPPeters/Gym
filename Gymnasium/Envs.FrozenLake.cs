@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -70,18 +71,17 @@ public class FrozenLake : Env<int, int>
 
     public override void Render(string mode = "human")
     {
+        ConsoleRenderer.RenderHeader("FrozenLake");
+        var grid = new char[_nrow, _ncol];
         for (int r = 0; r < _nrow; r++)
         {
             for (int c = 0; c < _ncol; c++)
             {
                 int idx = r * _ncol + c;
-                if (idx == _state)
-                    Console.Write("A ");
-                else
-                    Console.Write(_map[r][c] + " ");
+                grid[r, c] = idx == _state ? 'x' : _map[r][c];
             }
-            Console.WriteLine();
         }
+        ConsoleRenderer.RenderGrid(grid, spaced: true);
     }
 
     public override void Close() { }

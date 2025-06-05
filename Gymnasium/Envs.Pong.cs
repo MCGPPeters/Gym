@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -254,7 +255,8 @@ public class Pong : Env<byte[], int>
     {
         if (mode == "human")
         {
-            Console.WriteLine($"Pong - Left: {_leftScore}, Right: {_rightScore}");
+            ConsoleRenderer.RenderHeader("Pong");
+            Console.WriteLine($"Left: {_leftScore} Right: {_rightScore}");
             Console.WriteLine($"Ball: ({_ballX:F1}, {_ballY:F1}) Velocity: ({_ballVelX:F1}, {_ballVelY:F1})");
         }
     }

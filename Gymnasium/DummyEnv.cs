@@ -31,6 +31,7 @@ public class DummyEnv : Env<int, int>
 
     public override void Render(string mode = "human")
     {
+        ConsoleRenderer.RenderHeader("DummyEnv");
         Console.WriteLine($"State: {_state}");
     }
 

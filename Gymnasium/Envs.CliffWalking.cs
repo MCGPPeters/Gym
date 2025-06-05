@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -55,22 +56,24 @@ public class CliffWalking : Env<int, int>
 
     public override void Render(string mode = "human")
     {
+        ConsoleRenderer.RenderHeader("CliffWalking");
+        var grid = new char[_nrow, _ncol];
         for (int r = 0; r < _nrow; r++)
         {
             for (int c = 0; c < _ncol; c++)
             {
                 int idx = r * _ncol + c;
                 if (idx == _state)
-                    Console.Write("A ");
+                    grid[r, c] = 'x';
                 else if (_cliff.Contains(idx))
-                    Console.Write("C ");
+                    grid[r, c] = 'C';
                 else if (idx == _goal)
-                    Console.Write("G ");
+                    grid[r, c] = 'G';
                 else
-                    Console.Write(". ");
+                    grid[r, c] = '.';
             }
-            Console.WriteLine();
         }
+        ConsoleRenderer.RenderGrid(grid, spaced: true);
     }
 
     public override void Close() { }

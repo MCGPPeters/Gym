@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gymnasium.Spaces;
+using Gymnasium;
 
 namespace Gymnasium.Envs;
 
@@ -15,6 +16,10 @@ public class MujocoStub : Env<float[], float[]>
     private int _steps;
     public override float[] Reset() { _steps = 0; return _state; }
     public override (float[] state, double reward, bool done, IDictionary<string, object> info) Step(float[] action) { _steps++; return (_state, 0.0, _steps >= 1000, new Dictionary<string, object>()); }
-    public override void Render(string mode = "human") => Console.WriteLine("MujocoStub: [state data]");
+    public override void Render(string mode = "human")
+    {
+        ConsoleRenderer.RenderHeader("MujocoStub");
+        Console.WriteLine("[state data]");
+    }
     public override void Close() { }
 }

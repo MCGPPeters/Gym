@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Gymnasium.Spaces;
+using Gymnasium;
 using VelcroPhysics.Dynamics;
 using VelcroPhysics.Collision.Shapes;
 using VelcroPhysics.Factories;
@@ -221,7 +222,11 @@ public class BipedalWalker : Env<float[], float[]>
         }
     }
 
-    public override void Render(string mode = "human") => Console.WriteLine($"State: [{string.Join(", ", _state)}]");
+    public override void Render(string mode = "human")
+    {
+        ConsoleRenderer.RenderHeader("BipedalWalker");
+        Console.WriteLine($"State: [{string.Join(", ", _state)}]");
+    }
     
     public override void Close() 
     {
