@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">  <PropertyGroup>
+<Project Sdk="Microsoft.NET.Sdk">  <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -31,5 +31,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Gymnasium\Gymnasium.csproj" />
+    <ProjectReference Include="..\RevoLution\RevoLution.csproj" />
   </ItemGroup>
 </Project>
