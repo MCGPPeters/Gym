@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Composition;
 using System.Linq;
+using System.Reflection;
+using Gymnasium;
+using Gymnasium.Spaces;
 using Gymnasium.UI.Models;
 using RevoLution.Hybrid;
 using RevoLution.Neural;
@@ -14,26 +17,51 @@ public class RevoLutionAgentPlugin : IAgentPlugin
     public string Name => "RevoLution Hybrid Agent";
     public string Description => "Hybrid neuroevolution and reinforcement learning agent using the RevoLution algorithm.";
 
-    public object CreateAgent(object env, object? config = null) => new RevoLutionAgent(env);
+    public object CreateAgent(object env, object? config = null)
+    {
+        if (env is null) throw new ArgumentNullException(nameof(env));
+        var baseType = GetEnvBaseType(env.GetType()) ??
+                       throw new ArgumentException("Environment must derive from Env<TState,TAction>");
+        var args = baseType.GetGenericArguments();
+        var agentType = typeof(RevoLutionAgent<,>).MakeGenericType(args);
+        return Activator.CreateInstance(agentType, env)!;
+    }
 
-    public Func<double>? GetLossFetcher(object agent) => null; // Algorithm does not expose loss directly
+    private static Type? GetEnvBaseType(Type type)
+    {
+        while (type != null)
+        {
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Env<,>))
+                return type;
+            type = type.BaseType;
+        }
+        return null;
+    }
+
+    public Func<double>? GetLossFetcher(object agent) => null; // Algorithm does not expose loss
 }
 
-public class RevoLutionAgent
+public class RevoLutionAgent<TState, TAction>
 {
-    private readonly dynamic _env;
+    private readonly Env<TState, TAction> _env;
     private readonly HybridLearner _learner = new();
     private NeuralNetwork? _network;
     private bool _trained;
 
-    public RevoLutionAgent(object env)
+    private readonly Func<TState, List<double>> _stateConverter;
+    private readonly Func<List<double>, TAction> _actionConverter;
+    private readonly Func<TAction> _sampleAction;
+
+    public RevoLutionAgent(Env<TState, TAction> env)
     {
-        _env = env;
+        _env = env ?? throw new ArgumentNullException(nameof(env));
+        _stateConverter = CreateStateConverter();
+        _actionConverter = CreateActionConverter();
+        _sampleAction = CreateSampleAction();
     }
 
-    public object Act(object state)
+    public TAction Act(TState state)
     {
-        // Train on first call if not already done
         if (!_trained)
         {
             Train();
@@ -41,31 +69,19 @@ public class RevoLutionAgent
         }
 
         if (_network == null)
-            return _env.ActionSpace.Sample();
+            return _sampleAction();
 
-        var input = StateToList(state);
+        var input = _stateConverter(state);
         var outputs = _network.FeedForward(input);
-
-        if (_env.ActionSpace is Gymnasium.Spaces.Discrete)
-        {
-            int idx = outputs.IndexOf(outputs.Max());
-            return idx;
-        }
-        else
-        {
-            return outputs.ToArray();
-        }
+        return _actionConverter(outputs);
     }
 
-    public void Learn(object state, object action, double reward, object nextState, bool done)
+    public void Learn(TState state, TAction action, double reward, TState nextState, bool done)
     {
-        // Learning handled in Train()
+        // Learning happens during Train()
     }
 
-    public void Reset()
-    {
-        _env.Reset();
-    }
+    public void Reset() => _env.Reset();
 
     private void Train()
     {
@@ -84,15 +100,15 @@ public class RevoLutionAgent
     private (double, double[]) EvaluateNetwork(NeuralNetwork net)
     {
         var state = _env.Reset();
-        var obs = StateToList(state);
+        var obs = _stateConverter(state);
         double totalReward = 0;
         bool done = false;
         int steps = 0;
         while (!done && steps < 200)
         {
             var action = net.FeedForward(obs);
-            var (nextState, reward, isDone, _) = _env.Step(ConvertAction(action));
-            obs = StateToList(nextState);
+            var (nextState, reward, isDone, _) = _env.Step(_actionConverter(action));
+            obs = _stateConverter(nextState);
             totalReward += reward;
             done = isDone;
             steps++;
@@ -103,50 +119,131 @@ public class RevoLutionAgent
 
     private (List<double>, double, bool) EnvironmentStep(List<double> state, List<double> action)
     {
-        if (state == null || state.Count == 0)
+        if (state.Count == 0)
         {
             var reset = _env.Reset();
-            return (StateToList(reset), 0.0, false);
+            return (_stateConverter(reset), 0.0, false);
         }
 
-        var (nextState, reward, done, _) = _env.Step(ConvertAction(action));
-        return (StateToList(nextState), reward, done);
+        var (nextState, reward, done, _) = _env.Step(_actionConverter(action));
+        return (_stateConverter(nextState), reward, done);
     }
 
     private int GetObservationSize()
     {
-        dynamic obsSpace = _env.ObservationSpace;
-        return obsSpace.Shape[0];
+        return _env.ObservationSpace switch
+        {
+            Box box => box.Dimension,
+            Discrete => 1,
+            MultiBinary mb => mb.N,
+            MultiDiscrete md => md.Nvec.Length,
+            _ => throw new NotSupportedException("Unsupported observation space")
+        };
     }
 
     private int GetActionSize()
     {
-        dynamic actSpace = _env.ActionSpace;
-        if (actSpace is Gymnasium.Spaces.Discrete) return actSpace.N;
-        if (actSpace is Gymnasium.Spaces.Box) return actSpace.Dimension;
-        throw new NotSupportedException($"Unsupported action space {actSpace}");
+        return _env.ActionSpace switch
+        {
+            Discrete d => d.N,
+            Box b => b.Dimension,
+            MultiBinary mb => mb.N,
+            MultiDiscrete md => md.Nvec.Length,
+            _ => throw new NotSupportedException("Unsupported action space")
+        };
     }
 
-    private List<double> StateToList(object state)
+    private Func<TState, List<double>> CreateStateConverter()
     {
-        switch (state)
+        return state =>
         {
-            case float[] fa: return fa.Select(x => (double)x).ToList();
-            case int[] ia: return ia.Select(x => (double)x).ToList();
-            case ValueTuple<float,float,float,float> t:
-                return new List<double> { t.Item1, t.Item2, t.Item3, t.Item4 };
-            default:
-                return ((IEnumerable<object>)state).Select(Convert.ToDouble).ToList();
-        }
+            switch (state)
+            {
+                case null:
+                    return new List<double>();
+                case float f:
+                    return new List<double> { f };
+                case double d:
+                    return new List<double> { d };
+                case int i:
+                    return new List<double> { i };
+                case float[] fa:
+                    return fa.Select(v => (double)v).ToList();
+                case double[] da:
+                    return da.ToList();
+                case int[] ia:
+                    return ia.Select(v => (double)v).ToList();
+                case IEnumerable<float> fe:
+                    return fe.Select(v => (double)v).ToList();
+                case IEnumerable<double> de:
+                    return de.ToList();
+                case IEnumerable<int> ie:
+                    return ie.Select(v => (double)v).ToList();
+                default:
+                    if (state is ValueType)
+                    {
+                        return state.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance)
+                            .Select(f => Convert.ToDouble(f.GetValue(state)!))
+                            .ToList();
+                    }
+                    throw new NotSupportedException($"Unsupported state type {typeof(TState)}");
+            }
+        };
     }
 
-    private List<double> ConvertAction(List<double> action)
+    private Func<List<double>, TAction> CreateActionConverter()
     {
-        if (_env.ActionSpace is Gymnasium.Spaces.Discrete)
+        if (_env.ActionSpace is Discrete && typeof(TAction) == typeof(int))
         {
-            int idx = action.IndexOf(action.Max());
-            return new List<double> { idx };
+            return list => (TAction)(object)list.IndexOf(list.Max());
         }
-        return action;
+        if (_env.ActionSpace is Box box)
+        {
+            if (typeof(TAction) == typeof(float[]))
+            {
+                return list => (TAction)(object)list.Select(v => (float)v).ToArray();
+            }
+            if (typeof(TAction) == typeof(double[]))
+            {
+                return list => (TAction)(object)list.ToArray();
+            }
+            if (typeof(TAction) == typeof(float))
+            {
+                return list => (TAction)(object)(float)list[0];
+            }
+            if (typeof(TAction) == typeof(double))
+            {
+                return list => (TAction)(object)list[0];
+            }
+        }
+        throw new NotSupportedException($"Unsupported action type {typeof(TAction)} for space {_env.ActionSpace.GetType()}");
+    }
+
+    private Func<TAction> CreateSampleAction()
+    {
+        if (_env.ActionSpace is Discrete d && typeof(TAction) == typeof(int))
+        {
+            return () => (TAction)(object)d.Sample();
+        }
+        if (_env.ActionSpace is Box b)
+        {
+            if (typeof(TAction) == typeof(float[]))
+            {
+                return () => (TAction)(object)b.Sample();
+            }
+            if (typeof(TAction) == typeof(double[]))
+            {
+                return () => (TAction)(object)b.Sample().Select(x => (double)x).ToArray();
+            }
+            if (typeof(TAction) == typeof(float))
+            {
+                return () => (TAction)(object)b.Sample()[0];
+            }
+            if (typeof(TAction) == typeof(double))
+            {
+                return () => (TAction)(object)(double)b.Sample()[0];
+            }
+        }
+        throw new NotSupportedException("Unsupported action space for sampling");
     }
 }
