@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Composition;
 using System.Linq;
-using System.Reflection;
+// no reflection allowed
 using Gymnasium;
 using Gymnasium.Spaces;
 using Gymnasium.UI.Models;
@@ -19,23 +19,27 @@ public class RevoLutionAgentPlugin : IAgentPlugin
 
     public object CreateAgent(object env, object? config = null)
     {
-        if (env is null) throw new ArgumentNullException(nameof(env));
-        var baseType = GetEnvBaseType(env.GetType()) ??
-                       throw new ArgumentException("Environment must derive from Env<TState,TAction>");
-        var args = baseType.GetGenericArguments();
-        var agentType = typeof(RevoLutionAgent<,>).MakeGenericType(args);
-        return Activator.CreateInstance(agentType, env)!;
-    }
-
-    private static Type? GetEnvBaseType(Type type)
-    {
-        while (type != null)
+        return env switch
         {
-            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Env<,>))
-                return type;
-            type = type.BaseType;
-        }
-        return null;
+            Gymnasium.Envs.Acrobot e => new RevoLutionAgent<float[], int>(e),
+            Gymnasium.Envs.AtariStub e => new RevoLutionAgent<int[], int>(e),
+            Gymnasium.Envs.BipedalWalker e => new RevoLutionAgent<float[], float[]>(e),
+            Gymnasium.Envs.Blackjack e => new RevoLutionAgent<(int, int, bool), int>(e),
+            Gymnasium.Envs.Breakout e => new RevoLutionAgent<byte[], int>(e),
+            Gymnasium.Envs.CarRacing e => new RevoLutionAgent<float[], float[]>(e),
+            Gymnasium.Envs.CartPole e => new RevoLutionAgent<(float, float, float, float), int>(e),
+            Gymnasium.Envs.CliffWalking e => new RevoLutionAgent<int, int>(e),
+            Gymnasium.Envs.FrozenLake e => new RevoLutionAgent<int, int>(e),
+            Gymnasium.Envs.LunarLander e => new RevoLutionAgent<float[], int>(e),
+            Gymnasium.Envs.MountainCar e => new RevoLutionAgent<(float, float), int>(e),
+            Gymnasium.Envs.MountainCarContinuous e => new RevoLutionAgent<(float, float), float>(e),
+            Gymnasium.Envs.MujocoStub e => new RevoLutionAgent<float[], float[]>(e),
+            Gymnasium.Envs.Pendulum e => new RevoLutionAgent<float[], float>(e),
+            Gymnasium.Envs.Pong e => new RevoLutionAgent<byte[], int>(e),
+            Gymnasium.Envs.SpaceInvaders e => new RevoLutionAgent<byte[], int>(e),
+            Gymnasium.Envs.Taxi e => new RevoLutionAgent<int, int>(e),
+            _ => throw new ArgumentException($"Unsupported environment type {env.GetType()}")
+        };
     }
 
     public Func<double>? GetLossFetcher(object agent) => null; // Algorithm does not expose loss
@@ -157,37 +161,27 @@ public class RevoLutionAgent<TState, TAction>
     {
         return state =>
         {
-            switch (state)
+            return state switch
             {
-                case null:
-                    return new List<double>();
-                case float f:
-                    return new List<double> { f };
-                case double d:
-                    return new List<double> { d };
-                case int i:
-                    return new List<double> { i };
-                case float[] fa:
-                    return fa.Select(v => (double)v).ToList();
-                case double[] da:
-                    return da.ToList();
-                case int[] ia:
-                    return ia.Select(v => (double)v).ToList();
-                case IEnumerable<float> fe:
-                    return fe.Select(v => (double)v).ToList();
-                case IEnumerable<double> de:
-                    return de.ToList();
-                case IEnumerable<int> ie:
-                    return ie.Select(v => (double)v).ToList();
-                default:
-                    if (state is ValueType)
-                    {
-                        return state.GetType().GetFields(BindingFlags.Public | BindingFlags.Instance)
-                            .Select(f => Convert.ToDouble(f.GetValue(state)!))
-                            .ToList();
-                    }
-                    throw new NotSupportedException($"Unsupported state type {typeof(TState)}");
-            }
+                null => new List<double>(),
+                float f => new List<double> { f },
+                double d => new List<double> { d },
+                int i => new List<double> { i },
+                byte b => new List<double> { b },
+                bool bo => new List<double> { bo ? 1.0 : 0.0 },
+                float[] fa => fa.Select(v => (double)v).ToList(),
+                double[] da => da.ToList(),
+                int[] ia => ia.Select(v => (double)v).ToList(),
+                byte[] ba => ba.Select(v => (double)v).ToList(),
+                IEnumerable<float> fe => fe.Select(v => (double)v).ToList(),
+                IEnumerable<double> de => de.ToList(),
+                IEnumerable<int> ie => ie.Select(v => (double)v).ToList(),
+                IEnumerable<byte> be => be.Select(v => (double)v).ToList(),
+                (float a, float b) tuple2 => new List<double> { tuple2.a, tuple2.b },
+                (float a, float b, float c, float d) tuple4 => new List<double> { tuple4.a, tuple4.b, tuple4.c, tuple4.d },
+                (int a, int b, bool c) tupleIIB => new List<double> { tupleIIB.a, tupleIIB.b, tupleIIB.c ? 1.0 : 0.0 },
+                _ => throw new NotSupportedException($"Unsupported state type {typeof(TState)}")
+            };
         };
     }
 
